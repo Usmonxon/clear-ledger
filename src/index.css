@@ -2,95 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 20% 98%;
+    --foreground: 215 25% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 215 25% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 215 25% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 215 25% 20%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 210 18% 93%;
+    --secondary-foreground: 215 25% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 210 14% 95%;
+    --muted-foreground: 215 12% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 18% 90%;
+    --accent-foreground: 215 25% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 350 70% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 215 25% 20%;
 
-    --radius: 0.5rem;
+    --radius: 0.375rem;
 
-    --sidebar-background: 0 0% 98%;
+    --income: 152 55% 42%;
+    --income-foreground: 0 0% 100%;
+    --income-muted: 152 40% 94%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --expense: 350 65% 55%;
+    --expense-foreground: 0 0% 100%;
+    --expense-muted: 350 50% 95%;
 
-    --sidebar-primary: 240 5.9% 10%;
+    --transfer: 215 70% 55%;
+    --transfer-foreground: 0 0% 100%;
+    --transfer-muted: 215 50% 94%;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-background: 215 25% 15%;
+    --sidebar-foreground: 210 15% 80%;
+    --sidebar-primary: 152 55% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 20% 22%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 215 20% 25%;
+    --sidebar-ring: 152 55% 50%;
 
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --chart-income: 152 55% 42%;
+    --chart-expense: 350 65% 55%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --background: 215 25% 10%;
+    --foreground: 210 15% 90%;
+    --card: 215 25% 13%;
+    --card-foreground: 210 15% 90%;
+    --popover: 215 25% 13%;
+    --popover-foreground: 210 15% 90%;
+    --primary: 152 55% 50%;
+    --primary-foreground: 215 25% 10%;
+    --secondary: 215 20% 18%;
+    --secondary-foreground: 210 15% 90%;
+    --muted: 215 20% 18%;
+    --muted-foreground: 215 12% 55%;
+    --accent: 215 20% 22%;
+    --accent-foreground: 210 15% 90%;
+    --destructive: 350 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 152 55% 50%;
+    --sidebar-background: 215 28% 8%;
+    --sidebar-foreground: 210 15% 80%;
+    --sidebar-primary: 152 55% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 215 25% 14%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 215 25% 15%;
+    --sidebar-ring: 152 55% 50%;
   }
 }
 
@@ -101,5 +99,54 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  .erp-table th {
+    @apply bg-muted text-muted-foreground font-semibold text-xs uppercase tracking-wider;
+  }
+
+  .erp-table td {
+    @apply text-sm py-1.5 px-3;
+  }
+
+  .erp-table tr {
+    @apply border-b border-border hover:bg-muted/50 transition-colors;
+  }
+
+  .amount-income {
+    @apply text-income font-medium font-mono;
+  }
+
+  .amount-expense {
+    @apply text-expense font-medium font-mono;
+  }
+
+  .amount-transfer {
+    @apply text-transfer font-medium font-mono;
+  }
+
+  .matrix-header {
+    @apply bg-muted font-semibold text-xs uppercase tracking-wider text-muted-foreground sticky top-0 z-10;
+  }
+
+  .matrix-category-group {
+    @apply bg-muted/60 font-semibold text-sm;
+  }
+
+  .matrix-subcategory {
+    @apply pl-6 text-sm text-muted-foreground;
+  }
+
+  .matrix-cell {
+    @apply text-right font-mono text-sm tabular-nums px-3 py-1.5;
   }
 }
