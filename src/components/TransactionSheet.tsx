@@ -24,7 +24,6 @@ import {
 import {
   WALLETS,
   CASHFLOW_CATEGORIES,
-  PNL_CATEGORIES,
   type Transaction,
   type TransactionType,
   type Currency,
@@ -47,11 +46,9 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   const [date, setDate] = useState<Date>(initial ? new Date(initial.transaction_date) : new Date());
   const [reportingMonth, setReportingMonth] = useState(initial?.reporting_month ?? format(new Date(), "yyyy-MM"));
   const [wallet, setWallet] = useState(initial?.wallet_account ?? WALLETS[0]);
-  const [cashflowCat, setCashflowCat] = useState(initial?.cashflow_category ?? "");
-  const [pnlCat, setPnlCat] = useState(initial?.pnl_category ?? "");
+  const [category, setCategory] = useState(initial?.cashflow_category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
 
-  // Reset when initial changes
   const resetToInitial = () => {
     if (initial) {
       setAmount(String(initial.amount));
@@ -60,8 +57,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       setDate(new Date(initial.transaction_date));
       setReportingMonth(initial.reporting_month);
       setWallet(initial.wallet_account);
-      setCashflowCat(initial.cashflow_category);
-      setPnlCat(initial.pnl_category);
+      setCategory(initial.cashflow_category);
       setDescription(initial.description ?? "");
     } else {
       setAmount("");
@@ -70,33 +66,35 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       setDate(new Date());
       setReportingMonth(format(new Date(), "yyyy-MM"));
       setWallet(WALLETS[0]);
-      setCashflowCat("");
-      setPnlCat("");
+      setCategory("");
       setDescription("");
     }
   };
 
-  const cashflowOptions = type === "transfer" ? CASHFLOW_CATEGORIES.transfer : type === "income" ? CASHFLOW_CATEGORIES.income : CASHFLOW_CATEGORIES.expense;
-  const pnlOptions = type === "income" ? PNL_CATEGORIES.income : PNL_CATEGORIES.expense;
+  const categoryOptions =
+    type === "transfer"
+      ? CASHFLOW_CATEGORIES.transfer
+      : type === "income"
+      ? CASHFLOW_CATEGORIES.income
+      : CASHFLOW_CATEGORIES.expense;
 
   const handleSubmit = () => {
-    if (!amount || !cashflowCat) return;
+    if (!amount || !category) return;
     onSubmit({
       transaction_date: format(date, "yyyy-MM-dd"),
       reporting_month: reportingMonth,
       amount: parseFloat(amount),
       currency,
       wallet_account: wallet,
-      cashflow_category: cashflowCat,
-      pnl_category: type === "transfer" ? "PEREVOD" : pnlCat,
+      cashflow_category: category,
+      pnl_category: category, // keep same value for db compatibility
       description,
       type,
     });
     if (!isEdit) {
       setAmount("");
       setDescription("");
-      setCashflowCat("");
-      setPnlCat("");
+      setCategory("");
     }
   };
 
@@ -136,7 +134,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Row 1: Amount, Currency, Type */}
+          {/* Amount, Currency, Type */}
           <div className="grid grid-cols-[1fr_80px_100px] gap-2">
             <div>
               <Label className="text-xs text-muted-foreground">Сумма</Label>
@@ -151,9 +149,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div>
               <Label className="text-xs text-muted-foreground">Валюта</Label>
               <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover">
                   <SelectItem value="UZS">UZS</SelectItem>
                   <SelectItem value="USD">USD</SelectItem>
@@ -163,10 +159,8 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Тип</Label>
-              <Select value={type} onValueChange={(v) => setType(v as TransactionType)}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
+              <Select value={type} onValueChange={(v) => { setType(v as TransactionType); setCategory(""); }}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-popover">
                   <SelectItem value="income">Доход</SelectItem>
                   <SelectItem value="expense">Расход</SelectItem>
@@ -176,7 +170,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             </div>
           </div>
 
-          {/* Row 2: Date, PnL Month */}
+          {/* Date, PnL Month */}
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs text-muted-foreground">Дата ДДС</Label>
@@ -213,9 +207,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
           <div>
             <Label className="text-xs text-muted-foreground">Счёт (Кошелёк)</Label>
             <Select value={wallet} onValueChange={setWallet}>
-              <SelectTrigger className="h-9 text-xs">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-popover">
                 {WALLETS.map((w) => (
                   <SelectItem key={w} value={w}>{w}</SelectItem>
@@ -224,36 +216,20 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             </Select>
           </div>
 
-          {/* Categories — stacked in one column (matches table merge) */}
+          {/* Single Category */}
           <div>
-            <Label className="text-xs text-muted-foreground">Статья ДДС</Label>
-            <Select value={cashflowCat} onValueChange={setCashflowCat}>
+            <Label className="text-xs text-muted-foreground">Категория</Label>
+            <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-9 text-xs">
                 <SelectValue placeholder="Выберите..." />
               </SelectTrigger>
-              <SelectContent className="bg-popover max-h-[200px]">
-                {cashflowOptions.map((c) => (
+              <SelectContent className="bg-popover max-h-[220px]">
+                {categoryOptions.map((c) => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
-          {type !== "transfer" && (
-            <div>
-              <Label className="text-xs text-muted-foreground">Категория ОПУ</Label>
-              <Select value={pnlCat} onValueChange={setPnlCat}>
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="Выберите..." />
-                </SelectTrigger>
-                <SelectContent className="bg-popover max-h-[200px]">
-                  {pnlOptions.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Description */}
           <div>
@@ -266,7 +242,6 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             />
           </div>
 
-          {/* Submit */}
           <Button onClick={handleSubmit} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
             {isEdit ? "Сохранить изменения" : "Сохранить операцию"}
           </Button>
