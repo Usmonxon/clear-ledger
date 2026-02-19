@@ -1,10 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Plus, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockTransactions, formatAmountShort, type Transaction, type TransactionType, type Currency } from "@/data/mockData";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { formatAmountShort, type Transaction, type TransactionType } from "@/data/mockData";
 import { TransactionSheet } from "@/components/TransactionSheet";
 
 const typeStyles: Record<TransactionType, string> = {
@@ -20,33 +24,94 @@ const typeLabels: Record<TransactionType, string> = {
 };
 
 export default function Transactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
-  const filtered = useMemo(() => {
-    return transactions.filter((t) => {
-      if (typeFilter !== "all" && t.type !== typeFilter) return false;
-      if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return (
-          t.description.toLowerCase().includes(q) ||
-          t.cashflow_category.toLowerCase().includes(q) ||
-          t.pnl_category.toLowerCase().includes(q) ||
-          t.wallet_account.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    });
-  }, [transactions, search, typeFilter, currencyFilter]);
+  // ─── Fetch ────────────────────────────────────────────────────────────────
+  const { data: transactions = [], isLoading } = useQuery({
+    queryKey: ["transactions", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .order("transaction_date", { ascending: false });
+      if (error) throw error;
+      return data as Transaction[];
+    },
+    enabled: !!user,
+  });
 
-  const handleAdd = (txn: Transaction) => {
-    setTransactions((prev) => [txn, ...prev]);
-    setSheetOpen(false);
-  };
+  // ─── Insert ───────────────────────────────────────────────────────────────
+  const insertMutation = useMutation({
+    mutationFn: async (txn: Omit<Transaction, "id" | "created_at">) => {
+      const { error } = await supabase.from("transactions").insert({
+        ...txn,
+        user_id: user!.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      setSheetOpen(false);
+      toast({ title: "Операция добавлена" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
+  // ─── Update ───────────────────────────────────────────────────────────────
+  const updateMutation = useMutation({
+    mutationFn: async (txn: Omit<Transaction, "id" | "created_at">) => {
+      if (!selected) return;
+      const { error } = await supabase
+        .from("transactions")
+        .update({ ...txn })
+        .eq("id", selected.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      setSelected(null);
+      toast({ title: "Операция обновлена" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
+  // ─── Delete ───────────────────────────────────────────────────────────────
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("transactions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      setSelected(null);
+      toast({ title: "Операция удалена" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
+  // ─── Filter ───────────────────────────────────────────────────────────────
+  const filtered = transactions.filter((t) => {
+    if (typeFilter !== "all" && t.type !== typeFilter) return false;
+    if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        t.description?.toLowerCase().includes(q) ||
+        t.cashflow_category.toLowerCase().includes(q) ||
+        t.pnl_category.toLowerCase().includes(q) ||
+        t.wallet_account.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
     <div className="p-4 space-y-3">
@@ -105,8 +170,7 @@ export default function Transactions() {
             <tr>
               <th className="text-left px-3 py-2">Дата ДДС</th>
               <th className="text-left px-3 py-2">Месяц ОПУ</th>
-              <th className="text-left px-3 py-2">Статья (ДДС)</th>
-              <th className="text-left px-3 py-2">Категория (ОПУ)</th>
+              <th className="text-left px-3 py-2">Статья / Категория</th>
               <th className="text-left px-3 py-2">Счёт</th>
               <th className="text-right px-3 py-2">Сумма</th>
               <th className="text-left px-3 py-2">Валюта</th>
@@ -115,38 +179,75 @@ export default function Transactions() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((t) => (
-              <tr key={t.id} className="animate-slide-in">
-                <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
-                <td className="px-3 font-mono text-xs">{t.reporting_month}</td>
-                <td className="px-3">
-                  <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">
-                    {t.cashflow_category}
-                  </Badge>
-                </td>
-                <td className="px-3">
-                  <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0">
-                    {t.pnl_category}
-                  </Badge>
-                </td>
-                <td className="px-3 text-xs">{t.wallet_account}</td>
-                <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : "amount-transfer"}`}>
-                  {formatAmountShort(t.amount)}
-                </td>
-                <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
-                <td className="px-3 text-xs text-muted-foreground truncate max-w-[250px]">{t.description}</td>
-                <td className="px-3 text-center">
-                  <Badge className={`text-[10px] border px-1.5 py-0 font-medium ${typeStyles[t.type]}`}>
-                    {typeLabels[t.type]}
-                  </Badge>
+            {isLoading ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                  Загрузка...
                 </td>
               </tr>
-            ))}
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                  Операции не найдены
+                </td>
+              </tr>
+            ) : (
+              filtered.map((t) => (
+                <tr
+                  key={t.id}
+                  className="cursor-pointer animate-slide-in"
+                  onClick={() => setSelected(t)}
+                >
+                  <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
+                  <td className="px-3 font-mono text-xs">{t.reporting_month}</td>
+                  {/* Merged category column: cashflow on top, pnl below */}
+                  <td className="px-3">
+                    <div className="flex flex-col gap-0.5">
+                      <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0 w-fit">
+                        {t.cashflow_category}
+                      </Badge>
+                      {t.pnl_category && t.pnl_category !== "PEREVOD" && (
+                        <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0 w-fit text-muted-foreground">
+                          {t.pnl_category}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 text-xs">{t.wallet_account}</td>
+                  <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : "amount-transfer"}`}>
+                    {formatAmountShort(t.amount)}
+                  </td>
+                  <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
+                  <td className="px-3 text-xs text-muted-foreground truncate max-w-[250px]">{t.description}</td>
+                  <td className="px-3 text-center">
+                    <Badge className={`text-[10px] border px-1.5 py-0 font-medium ${typeStyles[t.type]}`}>
+                      {typeLabels[t.type]}
+                    </Badge>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <TransactionSheet open={sheetOpen} onOpenChange={setSheetOpen} onSubmit={handleAdd} />
+      {/* Add sheet */}
+      <TransactionSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onSubmit={(txn) => insertMutation.mutate(txn)}
+      />
+
+      {/* Edit/detail sheet */}
+      {selected && (
+        <TransactionSheet
+          open={!!selected}
+          onOpenChange={(v) => { if (!v) setSelected(null); }}
+          initial={selected}
+          onSubmit={(txn) => updateMutation.mutate(txn)}
+          onDelete={(id) => deleteMutation.mutate(id)}
+        />
+      )}
     </div>
   );
 }

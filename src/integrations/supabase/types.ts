@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          cashflow_category: string
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_type"]
+          description: string | null
+          id: string
+          pnl_category: string
+          reporting_month: string
+          transaction_date: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+          wallet_account: string
+        }
+        Insert: {
+          amount: number
+          cashflow_category: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          id?: string
+          pnl_category: string
+          reporting_month: string
+          transaction_date: string
+          type: Database["public"]["Enums"]["transaction_type"]
+          user_id: string
+          wallet_account: string
+        }
+        Update: {
+          amount?: number
+          cashflow_category?: string
+          created_at?: string
+          currency?: Database["public"]["Enums"]["currency_type"]
+          description?: string | null
+          id?: string
+          pnl_category?: string
+          reporting_month?: string
+          transaction_date?: string
+          type?: Database["public"]["Enums"]["transaction_type"]
+          user_id?: string
+          wallet_account?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +91,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      currency_type: "UZS" | "USD" | "RUB"
+      transaction_type: "income" | "expense" | "transfer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +219,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      currency_type: ["UZS", "USD", "RUB"],
+      transaction_type: ["income", "expense", "transfer"],
+    },
   },
 } as const

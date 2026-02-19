@@ -8,8 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   WALLETS,
   CASHFLOW_CATEGORIES,
@@ -22,19 +33,48 @@ import {
 interface TransactionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (txn: Transaction) => void;
+  onSubmit: (txn: Omit<Transaction, "id" | "created_at">) => void;
+  onDelete?: (id: string) => void;
+  initial?: Transaction | null;
 }
 
-export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSheetProps) {
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState<Currency>("UZS");
-  const [type, setType] = useState<TransactionType>("expense");
-  const [date, setDate] = useState<Date>(new Date());
-  const [reportingMonth, setReportingMonth] = useState(format(new Date(), "yyyy-MM"));
-  const [wallet, setWallet] = useState(WALLETS[0]);
-  const [cashflowCat, setCashflowCat] = useState("");
-  const [pnlCat, setPnlCat] = useState("");
-  const [description, setDescription] = useState("");
+export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initial }: TransactionSheetProps) {
+  const isEdit = !!initial;
+
+  const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
+  const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "UZS");
+  const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
+  const [date, setDate] = useState<Date>(initial ? new Date(initial.transaction_date) : new Date());
+  const [reportingMonth, setReportingMonth] = useState(initial?.reporting_month ?? format(new Date(), "yyyy-MM"));
+  const [wallet, setWallet] = useState(initial?.wallet_account ?? WALLETS[0]);
+  const [cashflowCat, setCashflowCat] = useState(initial?.cashflow_category ?? "");
+  const [pnlCat, setPnlCat] = useState(initial?.pnl_category ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+
+  // Reset when initial changes
+  const resetToInitial = () => {
+    if (initial) {
+      setAmount(String(initial.amount));
+      setCurrency(initial.currency);
+      setType(initial.type);
+      setDate(new Date(initial.transaction_date));
+      setReportingMonth(initial.reporting_month);
+      setWallet(initial.wallet_account);
+      setCashflowCat(initial.cashflow_category);
+      setPnlCat(initial.pnl_category);
+      setDescription(initial.description ?? "");
+    } else {
+      setAmount("");
+      setCurrency("UZS");
+      setType("expense");
+      setDate(new Date());
+      setReportingMonth(format(new Date(), "yyyy-MM"));
+      setWallet(WALLETS[0]);
+      setCashflowCat("");
+      setPnlCat("");
+      setDescription("");
+    }
+  };
 
   const cashflowOptions = type === "transfer" ? CASHFLOW_CATEGORIES.transfer : type === "income" ? CASHFLOW_CATEGORIES.income : CASHFLOW_CATEGORIES.expense;
   const pnlOptions = type === "income" ? PNL_CATEGORIES.income : PNL_CATEGORIES.expense;
@@ -42,8 +82,6 @@ export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSh
   const handleSubmit = () => {
     if (!amount || !cashflowCat) return;
     onSubmit({
-      id: String(Date.now()),
-      created_at: new Date().toISOString(),
       transaction_date: format(date, "yyyy-MM-dd"),
       reporting_month: reportingMonth,
       amount: parseFloat(amount),
@@ -54,18 +92,47 @@ export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSh
       description,
       type,
     });
-    // Reset
-    setAmount("");
-    setDescription("");
-    setCashflowCat("");
-    setPnlCat("");
+    if (!isEdit) {
+      setAmount("");
+      setDescription("");
+      setCashflowCat("");
+      setPnlCat("");
+    }
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={(v) => { if (!v) resetToInitial(); onOpenChange(v); }}>
       <SheetContent className="w-[420px] sm:w-[480px] bg-card overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-base">Новая операция</SheetTitle>
+        <SheetHeader className="flex flex-row items-center justify-between pr-6">
+          <SheetTitle className="text-base">
+            {isEdit ? "Операция" : "Новая операция"}
+          </SheetTitle>
+          {isEdit && onDelete && initial && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Удалить операцию?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Это действие необратимо. Операция будет удалена из базы данных.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => { onDelete(initial.id); onOpenChange(false); }}
+                    className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                  >
+                    Удалить
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
@@ -142,7 +209,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSh
             </div>
           </div>
 
-          {/* Row 3: Wallet, Categories */}
+          {/* Wallet */}
           <div>
             <Label className="text-xs text-muted-foreground">Счёт (Кошелёк)</Label>
             <Select value={wallet} onValueChange={setWallet}>
@@ -157,36 +224,36 @@ export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSh
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          {/* Categories — stacked in one column (matches table merge) */}
+          <div>
+            <Label className="text-xs text-muted-foreground">Статья ДДС</Label>
+            <Select value={cashflowCat} onValueChange={setCashflowCat}>
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="Выберите..." />
+              </SelectTrigger>
+              <SelectContent className="bg-popover max-h-[200px]">
+                {cashflowOptions.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {type !== "transfer" && (
             <div>
-              <Label className="text-xs text-muted-foreground">Статья ДДС</Label>
-              <Select value={cashflowCat} onValueChange={setCashflowCat}>
+              <Label className="text-xs text-muted-foreground">Категория ОПУ</Label>
+              <Select value={pnlCat} onValueChange={setPnlCat}>
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Выберите..." />
                 </SelectTrigger>
                 <SelectContent className="bg-popover max-h-[200px]">
-                  {cashflowOptions.map((c) => (
+                  {pnlOptions.map((c) => (
                     <SelectItem key={c} value={c}>{c}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            {type !== "transfer" && (
-              <div>
-                <Label className="text-xs text-muted-foreground">Категория ОПУ</Label>
-                <Select value={pnlCat} onValueChange={setPnlCat}>
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder="Выберите..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover max-h-[200px]">
-                    {pnlOptions.map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Description */}
           <div>
@@ -201,7 +268,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit }: TransactionSh
 
           {/* Submit */}
           <Button onClick={handleSubmit} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
-            Сохранить операцию
+            {isEdit ? "Сохранить изменения" : "Сохранить операцию"}
           </Button>
         </div>
       </SheetContent>

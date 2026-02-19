@@ -4,6 +4,7 @@ import {
   BarChart3,
   TrendingUp,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -16,7 +17,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Дашборд", url: "/", icon: LayoutDashboard },
@@ -27,6 +31,10 @@ const navItems = [
 ];
 
 export function AppSidebar() {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
   return (
     <Sidebar className="border-r-0">
       <SidebarHeader className="p-4 border-b border-sidebar-border">
@@ -67,6 +75,17 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-2 border-t border-sidebar-border">
+        <Button
+          variant="ghost"
+          onClick={handleLogout}
+          className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          <span>Выйти</span>
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
