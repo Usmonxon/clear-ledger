@@ -170,7 +170,7 @@ export default function Transactions() {
             <tr>
               <th className="text-left px-3 py-2">Дата ДДС</th>
               <th className="text-left px-3 py-2">Месяц ОПУ</th>
-              <th className="text-left px-3 py-2">Статья / Категория</th>
+              <th className="text-left px-3 py-2">Категория</th>
               <th className="text-left px-3 py-2">Счёт</th>
               <th className="text-right px-3 py-2">Сумма</th>
               <th className="text-left px-3 py-2">Валюта</th>
@@ -200,18 +200,10 @@ export default function Transactions() {
                 >
                   <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
                   <td className="px-3 font-mono text-xs">{t.reporting_month}</td>
-                  {/* Merged category column: cashflow on top, pnl below */}
                   <td className="px-3">
-                    <div className="flex flex-col gap-0.5">
-                      <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0 w-fit">
-                        {t.cashflow_category}
-                      </Badge>
-                      {t.pnl_category && t.pnl_category !== "PEREVOD" && (
-                        <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0 w-fit text-muted-foreground">
-                          {t.pnl_category}
-                        </Badge>
-                      )}
-                    </div>
+                    <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">
+                      {t.cashflow_category}
+                    </Badge>
                   </td>
                   <td className="px-3 text-xs">{t.wallet_account}</td>
                   <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : "amount-transfer"}`}>
