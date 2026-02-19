@@ -10,8 +10,39 @@ import CashflowReport from "./pages/CashflowReport";
 import PnLReport from "./pages/PnLReport";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Auth from "./pages/Auth";
+import { useAuth } from "@/hooks/useAuth";
 
 const queryClient = new QueryClient();
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xs text-muted-foreground animate-pulse">Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Auth />;
+  }
+
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/transactions" element={<Transactions />} />
+        <Route path="/cashflow" element={<CashflowReport />} />
+        <Route path="/pnl" element={<PnLReport />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AppLayout>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,16 +50,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/transactions" element={<Transactions />} />
-            <Route path="/cashflow" element={<CashflowReport />} />
-            <Route path="/pnl" element={<PnLReport />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
+        <AppRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
