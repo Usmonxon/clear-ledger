@@ -5,6 +5,7 @@ import {
   TrendingUp,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { title: "Дашборд", url: "/", icon: LayoutDashboard },
   { title: "Операции", url: "/transactions", icon: List },
+  { title: "Счета", url: "/accounts", icon: Wallet },
   { title: "ДДС Отчёт", url: "/cashflow", icon: BarChart3 },
   { title: "ОПУ Отчёт", url: "/pnl", icon: TrendingUp },
   { title: "Настройки", url: "/settings", icon: Settings },
