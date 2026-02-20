@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          initial_balance: number
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          initial_balance?: number
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
@@ -41,13 +95,16 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          attachment_url: string | null
           cashflow_category: string
           created_at: string
           currency: Database["public"]["Enums"]["currency_type"]
           description: string | null
+          from_account: string | null
           id: string
           pnl_category: string
           reporting_month: string
+          to_account: string | null
           transaction_date: string
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
@@ -55,13 +112,16 @@ export type Database = {
         }
         Insert: {
           amount: number
+          attachment_url?: string | null
           cashflow_category: string
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_type"]
           description?: string | null
+          from_account?: string | null
           id?: string
           pnl_category: string
           reporting_month: string
+          to_account?: string | null
           transaction_date: string
           type: Database["public"]["Enums"]["transaction_type"]
           user_id: string
@@ -69,17 +129,50 @@ export type Database = {
         }
         Update: {
           amount?: number
+          attachment_url?: string | null
           cashflow_category?: string
           created_at?: string
           currency?: Database["public"]["Enums"]["currency_type"]
           description?: string | null
+          from_account?: string | null
           id?: string
           pnl_category?: string
           reporting_month?: string
+          to_account?: string | null
           transaction_date?: string
           type?: Database["public"]["Enums"]["transaction_type"]
           user_id?: string
           wallet_account?: string
+        }
+        Relationships: []
+      }
+      workspace_members: {
+        Row: {
+          access_type: string
+          id: string
+          invited_at: string
+          member_email: string
+          member_id: string | null
+          owner_id: string
+          status: string
+        }
+        Insert: {
+          access_type?: string
+          id?: string
+          invited_at?: string
+          member_email: string
+          member_id?: string | null
+          owner_id: string
+          status?: string
+        }
+        Update: {
+          access_type?: string
+          id?: string
+          invited_at?: string
+          member_email?: string
+          member_id?: string | null
+          owner_id?: string
+          status?: string
         }
         Relationships: []
       }

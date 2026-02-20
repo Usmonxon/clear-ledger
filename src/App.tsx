@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Transactions from "./pages/Transactions";
+import Accounts from "./pages/Accounts";
 import CashflowReport from "./pages/CashflowReport";
 import PnLReport from "./pages/PnLReport";
 import Settings from "./pages/Settings";
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/transactions" element={<Transactions />} />
+        <Route path="/accounts" element={<Accounts />} />
         <Route path="/cashflow" element={<CashflowReport />} />
         <Route path="/pnl" element={<PnLReport />} />
         <Route path="/settings" element={<Settings />} />
