@@ -7,7 +7,9 @@ import { formatAmountShort, type Transaction } from "@/data/mockData";
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
   const set = new Set<string>();
-  transactions.forEach((t) => set.add(t.reporting_month));
+  transactions.forEach((t) => {
+    if (t.reporting_month) set.add(t.reporting_month);
+  });
   return Array.from(set).sort();
 }
 
@@ -42,6 +44,7 @@ export default function PnLReport() {
     const expenseCategories = new Map<string, Map<string, number>>();
 
     filtered.forEach((t) => {
+      if (!t.reporting_month) return;
       const monthKey = t.reporting_month;
       const target = t.type === "income" ? incomeCategories : expenseCategories;
 

@@ -45,6 +45,7 @@ export default function CashflowReport() {
     const transferTotals = new Map<string, number>();
 
     filtered.forEach((t) => {
+      if (!t.transaction_date) return;
       const monthKey = t.transaction_date.substring(0, 7);
       const target = t.type === "income" ? incomeCategories : t.type === "expense" ? expenseCategories : null;
 
