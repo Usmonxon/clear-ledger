@@ -5,8 +5,8 @@ import {
   TrendingUp,
   Settings,
   LogOut,
-  Wallet,
-} from "lucide-react";
+  Wallet } from
+"lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -18,19 +18,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
+  SidebarFooter } from
+"@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { title: "Дашборд", url: "/", icon: LayoutDashboard },
-  { title: "Операции", url: "/transactions", icon: List },
-  { title: "Счета", url: "/accounts", icon: Wallet },
-  { title: "ДДС Отчёт", url: "/cashflow", icon: BarChart3 },
-  { title: "ОПУ Отчёт", url: "/pnl", icon: TrendingUp },
-  { title: "Настройки", url: "/settings", icon: Settings },
-];
+{ title: "Дашборд", url: "/", icon: LayoutDashboard },
+{ title: "Операции", url: "/transactions", icon: List },
+{ title: "Счета", url: "/accounts", icon: Wallet },
+{ title: "ДДС Отчёт", url: "/cashflow", icon: BarChart3 },
+{ title: "ОПУ Отчёт", url: "/pnl", icon: TrendingUp },
+{ title: "Настройки", url: "/settings", icon: Settings }];
+
 
 export function AppSidebar() {
   const handleLogout = async () => {
@@ -45,7 +45,7 @@ export function AppSidebar() {
             <span className="text-sidebar-primary-foreground font-bold text-xs">F</span>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-sidebar-accent-foreground">FinanceERP</h2>
+            <h2 className="text-sm font-semibold text-sidebar-accent-foreground">finco</h2>
             <p className="text-[10px] text-sidebar-foreground/60">Управление финансами</p>
           </div>
         </div>
@@ -58,21 +58,21 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {navItems.map((item) =>
+              <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild className="h-9">
                     <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
+                    to={item.url}
+                    end={item.url === "/"}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors text-sm"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+
                       <item.icon className="h-4 w-4 shrink-0" />
                       <span>{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -82,12 +82,12 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           onClick={handleLogout}
-          className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm"
-        >
+          className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
+
           <LogOut className="h-4 w-4 shrink-0" />
           <span>Выйти</span>
         </Button>
       </SidebarFooter>
-    </Sidebar>
-  );
+    </Sidebar>);
+
 }
