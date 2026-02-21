@@ -13,6 +13,11 @@ export interface Transaction {
   pnl_category: string;
   description: string;
   type: TransactionType;
+  from_account?: string | null;
+  to_account?: string | null;
+  attachment_url?: string | null;
+  target_currency?: string | null;
+  target_amount?: number | null;
 }
 
 export const WALLETS = [

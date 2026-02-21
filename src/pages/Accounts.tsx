@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet, TrendingUp, TrendingDown, ArrowRightLeft } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,8 @@ type TxRow = {
   from_account: string | null;
   to_account: string | null;
   currency: string;
+  target_currency: string | null;
+  target_amount: number | null;
 };
 
 export default function Accounts() {
@@ -25,7 +27,7 @@ export default function Accounts() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("transactions")
-        .select("amount, type, wallet_account, from_account, to_account, currency");
+        .select("amount, type, wallet_account, from_account, to_account, currency, target_currency, target_amount");
       if (error) throw error;
       return data as TxRow[];
     },
@@ -33,14 +35,12 @@ export default function Accounts() {
   });
 
   const balances = useMemo(() => {
-    // Start with initial balances keyed by name
     const balanceMap = new Map<string, { initial: number; current: number; currency: string }>();
     accounts.forEach((a) => {
       balanceMap.set(a.name, { initial: a.initial_balance, current: a.initial_balance, currency: a.currency });
     });
 
     transactions.forEach((t) => {
-      // Determine the account name – prefer wallet_account, fallback to from_account
       const accountName = t.wallet_account || t.from_account || "";
       if (t.type === "income") {
         const entry = balanceMap.get(accountName);
@@ -49,16 +49,18 @@ export default function Accounts() {
         const entry = balanceMap.get(accountName);
         if (entry) entry.current -= t.amount;
       } else if (t.type === "transfer") {
-        // Deduct from source account
+        // Deduct from source
         const fromName = t.from_account || t.wallet_account;
         if (fromName) {
           const fromEntry = balanceMap.get(fromName);
           if (fromEntry) fromEntry.current -= t.amount;
         }
-        // Add to destination account
+        // Add to destination — use target_amount for cross-currency, otherwise amount
         if (t.to_account) {
           const toEntry = balanceMap.get(t.to_account);
-          if (toEntry) toEntry.current += t.amount;
+          if (toEntry) {
+            toEntry.current += (t.target_amount != null ? t.target_amount : t.amount);
+          }
         }
       }
     });
@@ -94,7 +96,6 @@ export default function Accounts() {
         <p className="text-xs text-muted-foreground">Текущие остатки по всем счетам</p>
       </div>
 
-      {/* Summary cards */}
       {totalByCurrency.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {totalByCurrency.map(([currency, total]) => (
@@ -116,7 +117,6 @@ export default function Accounts() {
         </div>
       )}
 
-      {/* Account cards */}
       {balances.length === 0 ? (
         <Card className="border">
           <CardContent className="p-8 text-center text-xs text-muted-foreground">

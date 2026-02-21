@@ -68,6 +68,39 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          created_at: string
+          from_currency: string
+          id: string
+          month: string
+          rate: number
+          to_currency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_currency: string
+          id?: string
+          month: string
+          rate: number
+          to_currency: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_currency?: string
+          id?: string
+          month?: string
+          rate?: number
+          to_currency?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           company_name: string | null
@@ -104,6 +137,8 @@ export type Database = {
           id: string
           pnl_category: string
           reporting_month: string
+          target_amount: number | null
+          target_currency: string | null
           to_account: string | null
           transaction_date: string
           type: Database["public"]["Enums"]["transaction_type"]
@@ -121,6 +156,8 @@ export type Database = {
           id?: string
           pnl_category: string
           reporting_month: string
+          target_amount?: number | null
+          target_currency?: string | null
           to_account?: string | null
           transaction_date: string
           type: Database["public"]["Enums"]["transaction_type"]
@@ -138,6 +175,8 @@ export type Database = {
           id?: string
           pnl_category?: string
           reporting_month?: string
+          target_amount?: number | null
+          target_currency?: string | null
           to_account?: string | null
           transaction_date?: string
           type?: Database["public"]["Enums"]["transaction_type"]
