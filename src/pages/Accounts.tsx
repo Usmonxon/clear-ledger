@@ -40,17 +40,21 @@ export default function Accounts() {
     });
 
     transactions.forEach((t) => {
+      // Determine the account name – prefer wallet_account, fallback to from_account
+      const accountName = t.wallet_account || t.from_account || "";
       if (t.type === "income") {
-        const entry = balanceMap.get(t.wallet_account);
+        const entry = balanceMap.get(accountName);
         if (entry) entry.current += t.amount;
       } else if (t.type === "expense") {
-        const entry = balanceMap.get(t.wallet_account);
+        const entry = balanceMap.get(accountName);
         if (entry) entry.current -= t.amount;
       } else if (t.type === "transfer") {
         // Deduct from source account
         const fromName = t.from_account || t.wallet_account;
-        const fromEntry = balanceMap.get(fromName);
-        if (fromEntry) fromEntry.current -= t.amount;
+        if (fromName) {
+          const fromEntry = balanceMap.get(fromName);
+          if (fromEntry) fromEntry.current -= t.amount;
+        }
         // Add to destination account
         if (t.to_account) {
           const toEntry = balanceMap.get(t.to_account);

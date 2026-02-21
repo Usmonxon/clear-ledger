@@ -47,6 +47,15 @@ export default function Dashboard() {
     const totalTransfer = uzs.filter((t) => t.type === "transfer").reduce((s, t) => s + t.amount, 0);
     const netProfit = totalIncome - totalExpense;
 
+    // Determine period
+    let minDate = "";
+    let maxDate = "";
+    if (transactions.length > 0) {
+      const dates = transactions.map((t) => t.transaction_date).sort();
+      minDate = dates[0];
+      maxDate = dates[dates.length - 1];
+    }
+
     // Build chart by month
     const monthMap = new Map<string, { income: number; expense: number }>();
     uzs.forEach((t) => {
@@ -61,7 +70,7 @@ export default function Dashboard() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([mk, v]) => ({ month: monthLabel(mk), ...v }));
 
-    return { totalIncome, totalExpense, totalTransfer, netProfit, chartData };
+    return { totalIncome, totalExpense, totalTransfer, netProfit, chartData, minDate, maxDate };
   }, [transactions]);
 
   const cards = [
@@ -89,7 +98,11 @@ export default function Dashboard() {
     <div className="p-4 space-y-4">
       <div>
         <h1 className="text-lg font-semibold">Дашборд</h1>
-        <p className="text-xs text-muted-foreground">Обзор финансов (UZS) • Все периоды</p>
+        <p className="text-xs text-muted-foreground">
+          Обзор финансов (UZS) • {stats.minDate && stats.maxDate
+            ? `${stats.minDate} — ${stats.maxDate}`
+            : "Нет данных"}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
