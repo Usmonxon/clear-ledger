@@ -189,6 +189,9 @@ export default function Transactions() {
                   </td>
                   <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : "amount-transfer"}`}>
                     {formatAmountShort(t.amount)}
+                    {t.target_amount != null && t.target_currency && (
+                      <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
+                    )}
                   </td>
                   <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
                   <td className="px-3 text-xs text-muted-foreground truncate max-w-[220px]">{t.description}</td>

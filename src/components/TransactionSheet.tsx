@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,8 @@ export type TransactionPayload = {
   from_account?: string | null;
   to_account?: string | null;
   attachment_url?: string | null;
+  target_currency?: string | null;
+  target_amount?: number | null;
 };
 
 export type TransactionFull = TransactionPayload & {
@@ -63,7 +65,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   const isEdit = !!initial;
 
   const { getCategoryNames, isLoading: catsLoading } = useCategories();
-  const { accountNames, isLoading: accsLoading } = useAccounts();
+  const { accounts, accountNames, isLoading: accsLoading } = useAccounts();
 
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "UZS");
@@ -77,6 +79,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   const [description, setDescription] = useState(initial?.description ?? "");
   const [attachmentUrl, setAttachmentUrl] = useState<string | null>(initial?.attachment_url ?? null);
   const [uploading, setUploading] = useState(false);
+  const [targetAmount, setTargetAmount] = useState(initial?.target_amount ? String(initial.target_amount) : "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const resetToInitial = () => {
@@ -92,15 +95,30 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       setCategory(initial.cashflow_category);
       setDescription(initial.description ?? "");
       setAttachmentUrl(initial.attachment_url ?? null);
+      setTargetAmount(initial.target_amount ? String(initial.target_amount) : "");
     } else {
       setAmount(""); setCurrency("UZS"); setType("expense");
       setDate(new Date()); setReportingMonth(format(new Date(), "yyyy-MM"));
       setWallet(""); setFromAccount(""); setToAccount("");
       setCategory(""); setDescription(""); setAttachmentUrl(null);
+      setTargetAmount("");
     }
   };
 
   const categoryOptions = getCategoryNames(type);
+
+  // Detect cross-currency transfer
+  const fromAccountCurrency = useMemo(() => {
+    if (type !== "transfer" || !fromAccount) return null;
+    return accounts.find((a) => a.name === fromAccount)?.currency ?? null;
+  }, [type, fromAccount, accounts]);
+
+  const toAccountCurrency = useMemo(() => {
+    if (type !== "transfer" || !toAccount) return null;
+    return accounts.find((a) => a.name === toAccount)?.currency ?? null;
+  }, [type, toAccount, accounts]);
+
+  const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -123,16 +141,22 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
 
   const handleSubmit = () => {
     if (!amount || !category) return;
-    // For transfer: require from and to accounts
     if (type === "transfer" && (!fromAccount || !toAccount)) {
       toast({ title: "Укажите счета перевода", variant: "destructive" });
       return;
     }
+    if (isCrossCurrency && !targetAmount) {
+      toast({ title: "Укажите сумму зачисления", variant: "destructive" });
+      return;
+    }
+
+    const effectiveCurrency = type === "transfer" && fromAccountCurrency ? fromAccountCurrency as Currency : currency;
+
     onSubmit({
       transaction_date: format(date, "yyyy-MM-dd"),
       reporting_month: reportingMonth,
       amount: parseFloat(amount),
-      currency,
+      currency: effectiveCurrency,
       wallet_account: type === "transfer" ? fromAccount : wallet,
       cashflow_category: category,
       pnl_category: category,
@@ -141,9 +165,11 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       from_account: type === "transfer" ? fromAccount : null,
       to_account: type === "transfer" ? toAccount : null,
       attachment_url: attachmentUrl,
+      target_currency: isCrossCurrency ? toAccountCurrency as string : null,
+      target_amount: isCrossCurrency ? parseFloat(targetAmount) : null,
     });
     if (!isEdit) {
-      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrl(null);
+      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrl(null); setTargetAmount("");
     }
   };
 
@@ -166,9 +192,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Удалить операцию?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Это действие необратимо.
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Это действие необратимо.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Отмена</AlertDialogCancel>
@@ -185,35 +209,99 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Amount + Currency + Type */}
-          <div className="grid grid-cols-[1fr_80px_100px] gap-2">
-            <div>
-              <Label className="text-xs text-muted-foreground">Сумма</Label>
-              <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 font-mono" />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Валюта</Label>
-              <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="UZS">UZS</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="RUB">RUB</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Тип</Label>
-              <Select value={type} onValueChange={(v) => { setType(v as TransactionType); setCategory(""); setFromAccount(""); setToAccount(""); }}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-popover">
-                  <SelectItem value="income">Доход</SelectItem>
-                  <SelectItem value="expense">Расход</SelectItem>
-                  <SelectItem value="transfer">Перевод</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Type selector */}
+          <div>
+            <Label className="text-xs text-muted-foreground">Тип</Label>
+            <Select value={type} onValueChange={(v) => { setType(v as TransactionType); setCategory(""); setFromAccount(""); setToAccount(""); setTargetAmount(""); }}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-popover">
+                <SelectItem value="income">Доход</SelectItem>
+                <SelectItem value="expense">Расход</SelectItem>
+                <SelectItem value="transfer">Перевод</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {/* Account(s) - moved before amount for transfers so we can detect currencies */}
+          {type === "transfer" ? (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Со счёта</Label>
+                <Select value={fromAccount || defaultWallet} onValueChange={setFromAccount}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Откуда" /></SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {fromAccountCurrency && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {fromAccountCurrency}</p>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">На счёт</Label>
+                <Select value={toAccount} onValueChange={setToAccount}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Куда" /></SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.filter((w) => w !== fromAccount).map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {toAccountCurrency && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {toAccountCurrency}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div>
+              <Label className="text-xs text-muted-foreground">Счёт (Кошелёк)</Label>
+              <Select value={wallet || defaultWallet} onValueChange={setWallet}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-popover">
+                  {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Amount fields */}
+          {isCrossCurrency ? (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Сумма списания ({fromAccountCurrency})</Label>
+                <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 font-mono" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Сумма зачисления ({toAccountCurrency})</Label>
+                <Input type="number" placeholder="0" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="h-9 font-mono" />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[1fr_80px] gap-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Сумма</Label>
+                <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 font-mono" />
+              </div>
+              {type !== "transfer" ? (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Валюта</Label>
+                  <Select value={currency} onValueChange={(v) => setCurrency(v as Currency)}>
+                    <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="UZS">UZS</SelectItem>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="RUB">RUB</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Валюта</Label>
+                  <div className="h-9 flex items-center text-xs text-muted-foreground px-2 border rounded-md bg-muted">
+                    {fromAccountCurrency || "—"}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Date + Reporting month */}
           <div className="grid grid-cols-2 gap-2">
@@ -236,40 +324,6 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
               <Input type="month" value={reportingMonth} onChange={(e) => setReportingMonth(e.target.value)} className="h-9 text-xs" />
             </div>
           </div>
-
-          {/* Account(s) */}
-          {type === "transfer" ? (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs text-muted-foreground">Со счёта</Label>
-                <Select value={fromAccount || defaultWallet} onValueChange={setFromAccount}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Откуда" /></SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">На счёт</Label>
-                <Select value={toAccount} onValueChange={setToAccount}>
-                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Куда" /></SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.filter((w) => w !== fromAccount).map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <Label className="text-xs text-muted-foreground">Счёт (Кошелёк)</Label>
-              <Select value={wallet || defaultWallet} onValueChange={setWallet}>
-                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {/* Category */}
           <div>

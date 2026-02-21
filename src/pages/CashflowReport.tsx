@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { formatAmountShort, type Transaction } from "@/data/mockData";
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
@@ -19,9 +21,15 @@ function monthLabel(key: string) {
   return `${names[parseInt(month) - 1]} ${year}`;
 }
 
+type CurrencyMode = "UZS" | "USD" | "RUB" | "ALL_UZS" | "ALL_USD" | "ALL_RUB";
+
 export default function CashflowReport() {
   const { user } = useAuth();
-  const [currency, setCurrency] = useState<string>("UZS");
+  const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
+  const { convert, isLoading: ratesLoading } = useExchangeRates();
+
+  const isUnified = currencyMode.startsWith("ALL_");
+  const baseCurrency = isUnified ? currencyMode.replace("ALL_", "") : currencyMode;
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["transactions", user?.id],
@@ -36,8 +44,11 @@ export default function CashflowReport() {
     enabled: !!user,
   });
 
-  const { monthKeys, data } = useMemo(() => {
-    const filtered = transactions.filter((t) => t.currency === currency);
+  const { monthKeys, data, missingRates } = useMemo(() => {
+    const missing = new Set<string>();
+    const filtered = isUnified
+      ? transactions
+      : transactions.filter((t) => t.currency === baseCurrency);
     const monthKeys = buildMonthColumns(filtered);
 
     const incomeCategories = new Map<string, Map<string, number>>();
@@ -47,15 +58,23 @@ export default function CashflowReport() {
     filtered.forEach((t) => {
       if (!t.transaction_date) return;
       const monthKey = t.transaction_date.substring(0, 7);
+
+      let amt = t.amount;
+      if (isUnified && t.currency !== baseCurrency) {
+        const result = convert(t.amount, t.currency, baseCurrency, monthKey);
+        amt = result.converted;
+        if (!result.found) missing.add(`${monthKey}: ${t.currency}→${baseCurrency}`);
+      }
+
       const target = t.type === "income" ? incomeCategories : t.type === "expense" ? expenseCategories : null;
 
       if (target) {
         if (!target.has(t.cashflow_category)) target.set(t.cashflow_category, new Map());
         const catMap = target.get(t.cashflow_category)!;
-        catMap.set(monthKey, (catMap.get(monthKey) || 0) + t.amount);
+        catMap.set(monthKey, (catMap.get(monthKey) || 0) + amt);
       }
       if (t.type === "transfer") {
-        transferTotals.set(monthKey, (transferTotals.get(monthKey) || 0) + t.amount);
+        transferTotals.set(monthKey, (transferTotals.get(monthKey) || 0) + amt);
       }
     });
 
@@ -70,13 +89,13 @@ export default function CashflowReport() {
       expenseTotals.set(mk, expSum);
     });
 
-    return { monthKeys, data: { incomeCategories, expenseCategories, transferTotals, incomeTotals, expenseTotals } };
-  }, [transactions, currency]);
+    return { monthKeys, data: { incomeCategories, expenseCategories, transferTotals, incomeTotals, expenseTotals }, missingRates: missing };
+  }, [transactions, currencyMode, baseCurrency, isUnified, convert]);
 
   const yearTotal = (map: Map<string, number>) => { let s = 0; map.forEach((v) => (s += v)); return s; };
   const catYearTotal = (catMap: Map<string, number>) => { let s = 0; catMap.forEach((v) => (s += v)); return s; };
 
-  if (isLoading) {
+  if (isLoading || ratesLoading) {
     return (
       <div className="p-4 flex items-center justify-center h-48">
         <p className="text-xs text-muted-foreground animate-pulse">Загрузка данных...</p>
@@ -91,17 +110,29 @@ export default function CashflowReport() {
           <h1 className="text-lg font-semibold">ДДС — Отчёт о движении денежных средств</h1>
           <p className="text-xs text-muted-foreground">Cashflow по месяцам (дата ДДС)</p>
         </div>
-        <Select value={currency} onValueChange={setCurrency}>
-          <SelectTrigger className="h-8 w-[100px] text-xs">
+        <Select value={currencyMode} onValueChange={(v) => setCurrencyMode(v as CurrencyMode)}>
+          <SelectTrigger className="h-8 w-[140px] text-xs">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="bg-popover">
             <SelectItem value="UZS">UZS</SelectItem>
             <SelectItem value="USD">USD</SelectItem>
             <SelectItem value="RUB">RUB</SelectItem>
+            <SelectItem value="ALL_UZS">ВСЕ (в UZS)</SelectItem>
+            <SelectItem value="ALL_USD">ВСЕ (в USD)</SelectItem>
+            <SelectItem value="ALL_RUB">ВСЕ (в RUB)</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {missingRates.size > 0 && (
+        <div className="flex flex-wrap gap-1.5 p-2 bg-muted/50 border border-border rounded-md">
+          <span className="text-[10px] text-muted-foreground">⚠ Нет курсов:</span>
+          {Array.from(missingRates).map((r) => (
+            <Badge key={r} variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/20">{r}</Badge>
+          ))}
+        </div>
+      )}
 
       {monthKeys.length === 0 ? (
         <div className="border rounded-md bg-card p-8 text-center text-xs text-muted-foreground">

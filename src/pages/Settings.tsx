@@ -9,6 +9,7 @@ import { Plus, Trash2, Pencil, Check, X, Mail, Shield, ShieldOff } from "lucide-
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/hooks/useAuth";
+import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -205,6 +206,113 @@ function AccountsTab() {
   );
 }
 
+function ExchangeRatesTab() {
+  const { rates, isLoading, addMutation, updateMutation, deleteMutation } = useExchangeRates();
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [fromCurrency, setFromCurrency] = useState("USD");
+  const [toCurrency, setToCurrency] = useState("UZS");
+  const [rateValue, setRateValue] = useState("");
+
+  const handleAdd = () => {
+    const val = parseFloat(rateValue);
+    if (!val || fromCurrency === toCurrency) return;
+    addMutation.mutate({ month, from_currency: fromCurrency, to_currency: toCurrency, rate: val });
+    setRateValue("");
+  };
+
+  const monthLabel = (m: string) => {
+    const [y, mo] = m.split("-");
+    const names = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+    return `${names[parseInt(mo) - 1]} ${y}`;
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="p-3 bg-muted/50 rounded-md text-xs text-muted-foreground">
+        <p>Укажите курсы валют по месяцам. Они используются для конвертации в единый отчёт.</p>
+        <p className="mt-1">Пример: 1 USD = 12 800 UZS</p>
+      </div>
+
+      {/* Add new rate */}
+      <div className="flex gap-2 flex-wrap items-end">
+        <div>
+          <label className="text-[10px] text-muted-foreground">Месяц</label>
+          <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-8 text-xs w-[140px]" />
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">Из</label>
+          <Select value={fromCurrency} onValueChange={setFromCurrency}>
+            <SelectTrigger className="h-8 w-[80px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="RUB">RUB</SelectItem>
+              <SelectItem value="UZS">UZS</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">В</label>
+          <Select value={toCurrency} onValueChange={setToCurrency}>
+            <SelectTrigger className="h-8 w-[80px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent className="bg-popover">
+              <SelectItem value="UZS">UZS</SelectItem>
+              <SelectItem value="USD">USD</SelectItem>
+              <SelectItem value="RUB">RUB</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">Курс</label>
+          <Input
+            type="number"
+            value={rateValue}
+            onChange={(e) => setRateValue(e.target.value)}
+            placeholder="12800"
+            className="h-8 text-xs w-[120px] font-mono"
+          />
+        </div>
+        <Button onClick={handleAdd} size="sm" className="h-8 text-xs" disabled={addMutation.isPending}>
+          <Plus className="h-3.5 w-3.5 mr-1" />
+          Добавить
+        </Button>
+      </div>
+
+      {/* Rates list */}
+      <div className="border rounded-md bg-card">
+        {isLoading ? (
+          <p className="p-4 text-xs text-muted-foreground">Загрузка...</p>
+        ) : rates.length === 0 ? (
+          <p className="p-4 text-xs text-muted-foreground text-center">Нет курсов. Добавьте курс выше.</p>
+        ) : (
+          <div className="divide-y divide-border">
+            {rates.map((r) => (
+              <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-[10px] font-mono">{monthLabel(r.month)}</Badge>
+                  <span className="text-xs">
+                    1 {r.from_currency} = <span className="font-mono font-semibold">{Number(r.rate).toLocaleString("ru-RU")}</span> {r.to_currency}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                  onClick={() => deleteMutation.mutate(r.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AccessTab() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -369,6 +477,7 @@ export default function Settings() {
         <TabsList className="h-8">
           <TabsTrigger value="accounts" className="text-xs h-7">Счета</TabsTrigger>
           <TabsTrigger value="categories" className="text-xs h-7">Категории</TabsTrigger>
+          <TabsTrigger value="rates" className="text-xs h-7">Курсы валют</TabsTrigger>
           <TabsTrigger value="access" className="text-xs h-7">Доступ</TabsTrigger>
         </TabsList>
 
@@ -406,6 +515,17 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <CategorySection type="transfer" label="Переводы" />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rates" className="mt-4">
+          <Card className="border">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-sm">Курсы валют</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <ExchangeRatesTab />
             </CardContent>
           </Card>
         </TabsContent>
