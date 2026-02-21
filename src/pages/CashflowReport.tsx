@@ -7,7 +7,9 @@ import { formatAmountShort, type Transaction } from "@/data/mockData";
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
   const set = new Set<string>();
-  transactions.forEach((t) => set.add(t.transaction_date.substring(0, 7)));
+  transactions.forEach((t) => {
+    if (t.transaction_date) set.add(t.transaction_date.substring(0, 7));
+  });
   return Array.from(set).sort();
 }
 
