@@ -2,11 +2,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCallback } from "react";
 
 export type ExchangeRate = {
   id: string;
   user_id: string;
-  month: string;
+  effective_date: string;
   from_currency: string;
   to_currency: string;
   rate: number;
@@ -25,7 +26,7 @@ export function useExchangeRates() {
       const { data, error } = await supabase
         .from("exchange_rates")
         .select("*")
-        .order("month", { ascending: false });
+        .order("effective_date", { ascending: false });
       if (error) throw error;
       return data as ExchangeRate[];
     },
@@ -33,7 +34,7 @@ export function useExchangeRates() {
   });
 
   const addMutation = useMutation({
-    mutationFn: async (rate: { month: string; from_currency: string; to_currency: string; rate: number }) => {
+    mutationFn: async (rate: { effective_date: string; from_currency: string; to_currency: string; rate: number }) => {
       const { error } = await supabase.from("exchange_rates").insert({ ...rate, user_id: user!.id });
       if (error) throw error;
     },
@@ -68,24 +69,28 @@ export function useExchangeRates() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
-  /** Convert amount from one currency to another using stored rates for a given month */
-  const convert = (amount: number, fromCurrency: string, toCurrency: string, month: string): { converted: number; found: boolean } => {
+  /**
+   * Find the applicable rate for a given transaction date.
+   * Logic: find the latest rate entry whose effective_date <= txDate for the given currency pair.
+   * Rates are sorted desc by effective_date already.
+   */
+  const convert = useCallback((amount: number, fromCurrency: string, toCurrency: string, txDate: string): { converted: number; found: boolean } => {
     if (fromCurrency === toCurrency) return { converted: amount, found: true };
 
-    // Direct rate
+    // Direct rate: find latest effective_date <= txDate
     const direct = rates.find(
-      (r) => r.month === month && r.from_currency === fromCurrency && r.to_currency === toCurrency
+      (r) => r.from_currency === fromCurrency && r.to_currency === toCurrency && r.effective_date <= txDate
     );
     if (direct) return { converted: amount * direct.rate, found: true };
 
     // Reverse rate
     const reverse = rates.find(
-      (r) => r.month === month && r.from_currency === toCurrency && r.to_currency === fromCurrency
+      (r) => r.from_currency === toCurrency && r.to_currency === fromCurrency && r.effective_date <= txDate
     );
     if (reverse && reverse.rate !== 0) return { converted: amount / reverse.rate, found: true };
 
     return { converted: amount, found: false };
-  };
+  }, [rates]);
 
   return { rates, isLoading, addMutation, updateMutation, deleteMutation, convert };
 }

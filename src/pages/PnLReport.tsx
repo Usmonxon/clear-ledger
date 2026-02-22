@@ -60,7 +60,8 @@ export default function PnLReport() {
 
       let amt = t.amount;
       if (isUnified && t.currency !== baseCurrency) {
-        const result = convert(t.amount, t.currency, baseCurrency, monthKey);
+        const txDate = t.transaction_date || monthKey + "-01";
+        const result = convert(t.amount, t.currency, baseCurrency, txDate);
         amt = result.converted;
         if (!result.found) missing.add(`${monthKey}: ${t.currency}→${baseCurrency}`);
       }

@@ -71,9 +71,9 @@ export type Database = {
       exchange_rates: {
         Row: {
           created_at: string
+          effective_date: string
           from_currency: string
           id: string
-          month: string
           rate: number
           to_currency: string
           updated_at: string
@@ -81,9 +81,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          effective_date: string
           from_currency: string
           id?: string
-          month: string
           rate: number
           to_currency: string
           updated_at?: string
@@ -91,9 +91,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          effective_date?: string
           from_currency?: string
           id?: string
-          month?: string
           rate?: number
           to_currency?: string
           updated_at?: string
