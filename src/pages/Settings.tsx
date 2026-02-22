@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Trash2, Pencil, Check, X, Mail, Shield, ShieldOff } from "lucide-react";
+import { Plus, Pencil, Check, X, Mail, Shield, ShieldOff } from "lucide-react";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,8 @@ import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { format } from "date-fns";
 
 type Member = {
   id: string;
@@ -59,12 +61,12 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
               }`}
             >
               {c.name}
-              <button
-                onClick={() => deleteMutation.mutate(c.id)}
-                className="ml-0.5 hover:opacity-70 rounded-full"
-              >
-                <X className="h-2.5 w-2.5" />
-              </button>
+              <ConfirmDelete
+                onConfirm={() => deleteMutation.mutate(c.id)}
+                title="Удалить категорию?"
+                description={`Категория «${c.name}» будет удалена. Это не повлияет на существующие операции.`}
+                variant="badge"
+              />
             </Badge>
           ))
         )}
@@ -114,9 +116,11 @@ function AccountRow({ account, onSave, onDelete }: {
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditing(true)}>
             <Pencil className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:bg-destructive/10" onClick={() => onDelete(account.id)}>
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <ConfirmDelete
+            onConfirm={() => onDelete(account.id)}
+            title="Удалить счёт?"
+            description={`Счёт «${account.name}» будет удалён. Операции по этому счёту сохранятся.`}
+          />
         </div>
       </div>
     );
@@ -207,11 +211,8 @@ function AccountsTab() {
 }
 
 function ExchangeRatesTab() {
-  const { rates, isLoading, addMutation, updateMutation, deleteMutation } = useExchangeRates();
-  const [month, setMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const { rates, isLoading, addMutation, deleteMutation } = useExchangeRates();
+  const [effectiveDate, setEffectiveDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [fromCurrency, setFromCurrency] = useState("USD");
   const [toCurrency, setToCurrency] = useState("UZS");
   const [rateValue, setRateValue] = useState("");
@@ -219,28 +220,27 @@ function ExchangeRatesTab() {
   const handleAdd = () => {
     const val = parseFloat(rateValue);
     if (!val || fromCurrency === toCurrency) return;
-    addMutation.mutate({ month, from_currency: fromCurrency, to_currency: toCurrency, rate: val });
+    addMutation.mutate({ effective_date: effectiveDate, from_currency: fromCurrency, to_currency: toCurrency, rate: val });
     setRateValue("");
   };
 
-  const monthLabel = (m: string) => {
-    const [y, mo] = m.split("-");
-    const names = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-    return `${names[parseInt(mo) - 1]} ${y}`;
+  const formatDate = (d: string) => {
+    const date = new Date(d);
+    return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
   };
 
   return (
     <div className="space-y-4">
       <div className="p-3 bg-muted/50 rounded-md text-xs text-muted-foreground">
-        <p>Укажите курсы валют по месяцам. Они используются для конвертации в единый отчёт.</p>
-        <p className="mt-1">Пример: 1 USD = 12 800 UZS</p>
+        <p>Укажите курсы валют с точной датой. Курс действует для всех операций от этой даты до следующего обновления.</p>
+        <p className="mt-1">Пример: с 01.01.2025 → 1 USD = 12 800 UZS (действует пока не появится новый курс)</p>
       </div>
 
       {/* Add new rate */}
       <div className="flex gap-2 flex-wrap items-end">
         <div>
-          <label className="text-[10px] text-muted-foreground">Месяц</label>
-          <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="h-8 text-xs w-[140px]" />
+          <label className="text-[10px] text-muted-foreground">Дата</label>
+          <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="h-8 text-xs w-[150px]" />
         </div>
         <div>
           <label className="text-[10px] text-muted-foreground">Из</label>
@@ -291,19 +291,16 @@ function ExchangeRatesTab() {
             {rates.map((r) => (
               <div key={r.id} className="flex items-center justify-between px-4 py-2.5">
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="text-[10px] font-mono">{monthLabel(r.month)}</Badge>
+                  <Badge variant="outline" className="text-[10px] font-mono">{formatDate(r.effective_date)}</Badge>
                   <span className="text-xs">
                     1 {r.from_currency} = <span className="font-mono font-semibold">{Number(r.rate).toLocaleString("ru-RU")}</span> {r.to_currency}
                   </span>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                  onClick={() => deleteMutation.mutate(r.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <ConfirmDelete
+                  onConfirm={() => deleteMutation.mutate(r.id)}
+                  title="Удалить курс?"
+                  description={`Курс ${r.from_currency}→${r.to_currency} от ${formatDate(r.effective_date)} будет удалён.`}
+                />
               </div>
             ))}
           </div>
@@ -448,14 +445,11 @@ function AccessTab() {
                     : <><ShieldOff className="h-2.5 w-2.5 mr-0.5 inline" />Ограниченный</>
                   }
                 </Badge>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-destructive hover:bg-destructive/10"
-                  onClick={() => revokeMutation.mutate(m.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <ConfirmDelete
+                  onConfirm={() => revokeMutation.mutate(m.id)}
+                  title="Отозвать доступ?"
+                  description={`Пользователь ${m.member_email} потеряет доступ к вашим данным.`}
+                />
               </div>
             </div>
           ))
