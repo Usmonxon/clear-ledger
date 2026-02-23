@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { supabase } from "@/integrations/supabase/client";
 
 type Transaction = {
@@ -12,6 +12,8 @@ type Transaction = {
 };
 
 function buildReportSheet(
+  wb: ExcelJS.Workbook,
+  sheetName: string,
   transactions: Transaction[],
   monthField: "transaction_date" | "reporting_month",
   label: string,
@@ -27,7 +29,7 @@ function buildReportSheet(
     if (val) monthSet.add(val);
   });
   const months = Array.from(monthSet).sort();
-  if (!months.length) return null;
+  if (!months.length) return;
 
   const names = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
   const monthLabel = (k: string) => {
@@ -49,31 +51,33 @@ function buildReportSheet(
     g[cat][mk] = (g[cat][mk] || 0) + t.amount;
   });
 
-  const rows: Record<string, string | number>[] = [];
+  const ws = wb.addWorksheet(sheetName);
+  const header = ["Категория", "ГОД", ...months.map(monthLabel)];
+  ws.addRow(header);
 
   const addSection = (title: string, cats: Record<string, Record<string, number>>) => {
-    // Total row
-    const totalRow: Record<string, string | number> = { Категория: title };
+    const totalRow: (string | number)[] = [title];
     let yearTotal = 0;
     months.forEach((mk) => {
       let sum = 0;
       Object.values(cats).forEach((c) => { sum += c[mk] || 0; });
-      totalRow[monthLabel(mk)] = sum;
       yearTotal += sum;
     });
-    totalRow["ГОД"] = yearTotal;
-    rows.push(totalRow);
+    totalRow.push(yearTotal);
+    months.forEach((mk) => {
+      let sum = 0;
+      Object.values(cats).forEach((c) => { sum += c[mk] || 0; });
+      totalRow.push(sum);
+    });
+    ws.addRow(totalRow);
 
-    // Category rows
     Object.entries(cats).forEach(([cat, vals]) => {
-      const row: Record<string, string | number> = { Категория: `  ${cat}` };
+      const row: (string | number)[] = [`  ${cat}`];
       let yt = 0;
-      months.forEach((mk) => {
-        row[monthLabel(mk)] = vals[mk] || 0;
-        yt += vals[mk] || 0;
-      });
-      row["ГОД"] = yt;
-      rows.push(row);
+      months.forEach((mk) => { yt += vals[mk] || 0; });
+      row.push(yt);
+      months.forEach((mk) => { row.push(vals[mk] || 0); });
+      ws.addRow(row);
     });
   };
 
@@ -81,30 +85,30 @@ function buildReportSheet(
   addSection("РАСХОДЫ", groups.expense);
 
   // Profit row
-  const profitRow: Record<string, string | number> = { Категория: label === "ДДС" ? "ПРИБЫЛЬ (по кассе)" : "ЧИСТАЯ ПРИБЫЛЬ" };
+  const profitRow: (string | number)[] = [label === "ДДС" ? "ПРИБЫЛЬ (по кассе)" : "ЧИСТАЯ ПРИБЫЛЬ"];
   let profitYear = 0;
   months.forEach((mk) => {
     let inc = 0, exp = 0;
     Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
     Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
-    const p = inc - exp;
-    profitRow[monthLabel(mk)] = p;
-    profitYear += p;
+    profitYear += inc - exp;
   });
-  profitRow["ГОД"] = profitYear;
-  rows.push(profitRow);
+  profitRow.push(profitYear);
+  months.forEach((mk) => {
+    let inc = 0, exp = 0;
+    Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
+    Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
+    profitRow.push(inc - exp);
+  });
+  ws.addRow(profitRow);
 
   if (includeTransfers && Object.keys(groups.transfer).length) {
     addSection("ПЕРЕВОДЫ", groups.transfer);
   }
-
-  // Reorder columns: Категория, ГОД, months...
-  const header = ["Категория", "ГОД", ...months.map(monthLabel)];
-  return XLSX.utils.json_to_sheet(rows, { header });
 }
 
 export async function exportToExcel() {
-  const wb = XLSX.utils.book_new();
+  const wb = new ExcelJS.Workbook();
 
   // Transactions
   const { data: transactions } = await supabase
@@ -113,16 +117,13 @@ export async function exportToExcel() {
     .order("transaction_date", { ascending: false });
 
   if (transactions?.length) {
-    const ws = XLSX.utils.json_to_sheet(transactions);
-    XLSX.utils.book_append_sheet(wb, ws, "Операции");
+    const ws = wb.addWorksheet("Операции");
+    const cols = Object.keys(transactions[0]);
+    ws.addRow(cols);
+    transactions.forEach((t) => ws.addRow(cols.map((c) => (t as any)[c])));
 
-    // Cashflow (ДДС) - by transaction_date, include transfers
-    const cashflowSheet = buildReportSheet(transactions as Transaction[], "transaction_date", "ДДС", true);
-    if (cashflowSheet) XLSX.utils.book_append_sheet(wb, cashflowSheet, "ДДС");
-
-    // PnL (ОПУ) - by reporting_month, exclude transfers
-    const pnlSheet = buildReportSheet(transactions as Transaction[], "reporting_month", "ОПУ", false);
-    if (pnlSheet) XLSX.utils.book_append_sheet(wb, pnlSheet, "ОПУ");
+    buildReportSheet(wb, "ДДС", transactions as Transaction[], "transaction_date", "ДДС", true);
+    buildReportSheet(wb, "ОПУ", transactions as Transaction[], "reporting_month", "ОПУ", false);
   }
 
   // Accounts
@@ -132,8 +133,10 @@ export async function exportToExcel() {
     .order("name");
 
   if (accounts?.length) {
-    const ws = XLSX.utils.json_to_sheet(accounts);
-    XLSX.utils.book_append_sheet(wb, ws, "Счета");
+    const ws = wb.addWorksheet("Счета");
+    const cols = Object.keys(accounts[0]);
+    ws.addRow(cols);
+    accounts.forEach((a) => ws.addRow(cols.map((c) => (a as any)[c])));
   }
 
   // Categories
@@ -143,8 +146,10 @@ export async function exportToExcel() {
     .order("type, name");
 
   if (categories?.length) {
-    const ws = XLSX.utils.json_to_sheet(categories);
-    XLSX.utils.book_append_sheet(wb, ws, "Категории");
+    const ws = wb.addWorksheet("Категории");
+    const cols = Object.keys(categories[0]);
+    ws.addRow(cols);
+    categories.forEach((cat) => ws.addRow(cols.map((c) => (cat as any)[c])));
   }
 
   // Exchange rates
@@ -154,10 +159,19 @@ export async function exportToExcel() {
     .order("effective_date", { ascending: false });
 
   if (rates?.length) {
-    const ws = XLSX.utils.json_to_sheet(rates);
-    XLSX.utils.book_append_sheet(wb, ws, "Курсы валют");
+    const ws = wb.addWorksheet("Курсы валют");
+    const cols = Object.keys(rates[0]);
+    ws.addRow(cols);
+    rates.forEach((r) => ws.addRow(cols.map((c) => (r as any)[c])));
   }
 
   const dateStr = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `finco-export-${dateStr}.xlsx`);
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `finco-export-${dateStr}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
