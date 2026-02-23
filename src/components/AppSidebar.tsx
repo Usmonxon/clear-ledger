@@ -5,7 +5,8 @@ import {
   TrendingUp,
   Settings,
   LogOut,
-  Wallet } from
+  Wallet,
+  Download } from
 "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -23,6 +24,8 @@ import {
 "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { exportToExcel } from "@/lib/exportExcel";
+import { useToast } from "@/hooks/use-toast";
 
 const navItems = [
 { title: "Дашборд", url: "/", icon: LayoutDashboard },
@@ -35,6 +38,7 @@ const navItems = [
 
 export function AppSidebar() {
   const { setOpenMobile, isMobile } = useSidebar();
+  const { toast } = useToast();
 
   const handleNavClick = () => {
     if (isMobile) setOpenMobile(false);
@@ -42,6 +46,15 @@ export function AppSidebar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleExport = async () => {
+    try {
+      await exportToExcel();
+      toast({ title: "Экспорт завершён" });
+    } catch (e: any) {
+      toast({ title: "Ошибка экспорта", description: e.message, variant: "destructive" });
+    }
   };
 
   return (
@@ -86,12 +99,18 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-sidebar-border">
+      <SidebarFooter className="p-2 border-t border-sidebar-border space-y-1">
+        <Button
+          variant="ghost"
+          onClick={handleExport}
+          className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
+          <Download className="h-4 w-4 shrink-0" />
+          <span>Экспорт Excel</span>
+        </Button>
         <Button
           variant="ghost"
           onClick={handleLogout}
           className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
-
           <LogOut className="h-4 w-4 shrink-0" />
           <span>Выйти</span>
         </Button>
