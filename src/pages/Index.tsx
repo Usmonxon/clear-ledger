@@ -1,11 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, ArrowRightLeft, Wallet } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatAmountShort } from "@/data/mockData";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, format } from "date-fns";
 
 type TxRow = {
   id: string;
@@ -24,8 +26,34 @@ function monthLabel(key: string) {
   return names[parseInt(month) - 1];
 }
 
+type Period = "this_month" | "last_month" | "this_year" | "all";
+
+function getPeriodRange(period: Period): { from: string; to: string } | null {
+  const now = new Date();
+  switch (period) {
+    case "this_month":
+      return { from: format(startOfMonth(now), "yyyy-MM-dd"), to: format(endOfMonth(now), "yyyy-MM-dd") };
+    case "last_month": {
+      const prev = subMonths(now, 1);
+      return { from: format(startOfMonth(prev), "yyyy-MM-dd"), to: format(endOfMonth(prev), "yyyy-MM-dd") };
+    }
+    case "this_year":
+      return { from: format(startOfYear(now), "yyyy-MM-dd"), to: format(endOfYear(now), "yyyy-MM-dd") };
+    default:
+      return null;
+  }
+}
+
+const periodLabels: Record<Period, string> = {
+  this_month: "Этот месяц",
+  last_month: "Прошлый месяц",
+  this_year: "Этот год",
+  all: "Все время",
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
+  const [period, setPeriod] = useState<Period>("this_month");
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["transactions", user?.id],
@@ -41,22 +69,25 @@ export default function Dashboard() {
   });
 
   const stats = useMemo(() => {
-    const uzs = transactions.filter((t) => t.currency === "UZS");
+    const range = getPeriodRange(period);
+    const filtered = range
+      ? transactions.filter((t) => t.transaction_date >= range.from && t.transaction_date <= range.to)
+      : transactions;
+
+    const uzs = filtered.filter((t) => t.currency === "UZS");
     const totalIncome = uzs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
     const totalExpense = uzs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
     const totalTransfer = uzs.filter((t) => t.type === "transfer").reduce((s, t) => s + t.amount, 0);
     const netProfit = totalIncome - totalExpense;
 
-    // Determine period
     let minDate = "";
     let maxDate = "";
-    if (transactions.length > 0) {
-      const dates = transactions.map((t) => t.transaction_date).sort();
+    if (filtered.length > 0) {
+      const dates = filtered.map((t) => t.transaction_date).sort();
       minDate = dates[0];
       maxDate = dates[dates.length - 1];
     }
 
-    // Build chart by month
     const monthMap = new Map<string, { income: number; expense: number }>();
     uzs.forEach((t) => {
       const mk = t.transaction_date.substring(0, 7);
@@ -71,7 +102,7 @@ export default function Dashboard() {
       .map(([mk, v]) => ({ month: monthLabel(mk), ...v }));
 
     return { totalIncome, totalExpense, totalTransfer, netProfit, chartData, minDate, maxDate };
-  }, [transactions]);
+  }, [transactions, period]);
 
   const cards = [
     { title: "Доходы", value: stats.totalIncome, icon: TrendingUp, type: "income" as const },
@@ -96,13 +127,25 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 space-y-4">
-      <div>
-        <h1 className="text-lg font-semibold">Дашборд</h1>
-        <p className="text-xs text-muted-foreground">
-          Обзор финансов (UZS) • {stats.minDate && stats.maxDate
-            ? `${stats.minDate} — ${stats.maxDate}`
-            : "Нет данных"}
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-lg font-semibold">Дашборд</h1>
+          <p className="text-xs text-muted-foreground">
+            Обзор финансов (UZS) • {stats.minDate && stats.maxDate
+              ? `${stats.minDate} — ${stats.maxDate}`
+              : "Нет данных"}
+          </p>
+        </div>
+        <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
+          <SelectTrigger className="h-8 w-[160px] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-popover">
+            {Object.entries(periodLabels).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -151,7 +194,7 @@ export default function Dashboard() {
       ) : (
         <Card className="border">
           <CardContent className="p-8 text-center text-xs text-muted-foreground">
-            Нет данных. Добавьте операции в разделе «Операции».
+            Нет данных за выбранный период.
           </CardContent>
         </Card>
       )}
