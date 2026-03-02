@@ -155,4 +155,12 @@
   .matrix-cell {
     @apply text-right font-mono text-sm tabular-nums px-3 py-1.5;
   }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pb-safe-offset {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 3.5rem);
+  }
 }
