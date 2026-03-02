@@ -10,6 +10,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatAmountShort, type TransactionType } from "@/data/mockData";
 import { TransactionSheet, type TransactionFull, type TransactionPayload } from "@/components/TransactionSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileTransactionList } from "@/components/MobileTransactionList";
+import { MobileTransactionDrawer } from "@/components/MobileTransactionDrawer";
 
 const typeStyles: Record<TransactionType, string> = {
   income: "bg-income-muted text-income border-income/20",
@@ -27,6 +30,7 @@ export default function Transactions() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -91,7 +95,37 @@ export default function Transactions() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
-  // ─── Filter ───────────────────────────────────────────────────────────────
+  // ─── Mobile ───────────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <>
+        <MobileTransactionList
+          transactions={transactions}
+          isLoading={isLoading}
+          onAdd={() => setSheetOpen(true)}
+          onSelect={(t) => setSelected(t)}
+        />
+
+        <MobileTransactionDrawer
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          onSubmit={(txn) => insertMutation.mutate(txn)}
+        />
+
+        {selected && (
+          <MobileTransactionDrawer
+            open={!!selected}
+            onOpenChange={(v) => { if (!v) setSelected(null); }}
+            initial={selected}
+            onSubmit={(txn) => updateMutation.mutate(txn)}
+            onDelete={(id) => deleteMutation.mutate(id)}
+          />
+        )}
+      </>
+    );
+  }
+
+  // ─── Desktop Filter ──────────────────────────────────────────────────────
   const filtered = transactions.filter((t) => {
     if (typeFilter !== "all" && t.type !== typeFilter) return false;
     if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
