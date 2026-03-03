@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import PnLSankeyChart from "@/components/PnLSankeyChart";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -217,6 +218,15 @@ export default function PnLReport() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {monthKeys.length > 0 && (
+        <PnLSankeyChart
+          incomeCategories={data.incomeCategories}
+          expenseCategories={data.expenseCategories}
+          baseCurrency={baseCurrency}
+          monthKeys={monthKeys}
+        />
       )}
     </div>
   );
