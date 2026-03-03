@@ -14,7 +14,7 @@ interface Props {
   monthKeys: string[];
 }
 
-type PeriodOption = "all" | "3m" | "6m" | "1y";
+type PeriodOption = "all" | "this_month" | "last_month" | "this_year";
 
 const INCOME_COLOR = "hsl(142, 71%, 45%)";
 const EXPENSE_COLOR = "hsl(0, 84%, 60%)";
@@ -24,16 +24,20 @@ const LOSS_COLOR = "hsl(0, 84%, 60%)";
 function filterMonthKeys(monthKeys: string[], period: PeriodOption): string[] {
   if (period === "all" || monthKeys.length === 0) return monthKeys;
   const sorted = [...monthKeys].sort();
-  const last = sorted[sorted.length - 1];
-  const [y, m] = last.split("-").map(Number);
-  const lastDate = new Date(y, m - 1, 1);
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const months = period === "3m" ? 3 : period === "6m" ? 6 : 12;
-  const cutoff = new Date(lastDate);
-  cutoff.setMonth(cutoff.getMonth() - months + 1);
-  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}`;
-
-  return sorted.filter((k) => k >= cutoffKey);
+  if (period === "this_month") {
+    return sorted.filter((k) => k === currentMonth);
+  }
+  if (period === "last_month") {
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    return sorted.filter((k) => k === lastMonth);
+  }
+  // this_year
+  const yearPrefix = String(now.getFullYear());
+  return sorted.filter((k) => k.startsWith(yearPrefix));
 }
 
 function buildSankeyData(
@@ -223,10 +227,10 @@ export default function PnLSankeyChart({ incomeCategories, expenseCategories, ba
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-popover">
+                <SelectItem value="this_month">Этот месяц</SelectItem>
+                <SelectItem value="last_month">Прошлый месяц</SelectItem>
+                <SelectItem value="this_year">Этот год</SelectItem>
                 <SelectItem value="all">Весь период</SelectItem>
-                <SelectItem value="3m">3 мес</SelectItem>
-                <SelectItem value="6m">6 мес</SelectItem>
-                <SelectItem value="1y">1 год</SelectItem>
               </SelectContent>
             </Select>
             <span className="text-xs text-muted-foreground">{baseCurrency}</span>
