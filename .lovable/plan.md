@@ -1,41 +1,57 @@
-# Sankey Cash Flow Chart for P&L Page
 
-Add a Sankey diagram below the existing pivot table on the P&L page, visualizing income categories flowing into a central "Revenue" node, then branching out to expense categories, with a surplus/deficit node at the bottom — matching the reference screenshot.
+
+# Dividends Logic
+
+Dividends are cash withdrawals by owners that reduce cash (appear in Cashflow/DDS) but do NOT affect profit (excluded from PnL), similar to how transfers are already handled.
 
 ## Approach
 
-Recharts (already installed) includes a built-in `Sankey` component. No new dependencies needed.
+Add `dividend` as a new transaction type. In reports, treat it like an expense in Cashflow but exclude it from PnL (same as transfers).
 
-## What to Build
+## Changes
 
-### New Component: `src/components/PnLSankeyChart.tsx`
+### 1. Database Migration
+- Add `'dividend'` to the `transaction_type` enum: `ALTER TYPE transaction_type ADD VALUE 'dividend'`
 
-- Accepts the already-computed `incomeCategories` and `expenseCategories` Maps from the P&L page
-- Transforms them into Sankey `nodes` and `links` format:
-  - **Left nodes**: Each income category (e.g., "CRM", "amoCRM подписка") with its yearly total
-  - **Center node**: "Выручка" (Revenue) — total income
-  - **Right nodes**: Each expense category with its yearly total
-  - **Bottom-right node**: "Прибыль" (Profit) or "Убыток" (Loss) — the net result
-- Links flow: `[income cat] → [Revenue] → [expense cat]` and `[Revenue] → [Profit/Loss]`
-- Green color for income flows, red/gray gradient for expense flows, green for surplus
-- Custom node renderer showing category name + formatted amount (like the reference image)
-- Custom link renderer with gradient fills
-- Wrapped in a card with a collapsible toggle so users can show/hide it
+### 2. Type Definitions (`src/data/mockData.ts`)
+- Add `"dividend"` to `TransactionType` union
 
-### Modify: `src/pages/PnLReport.tsx`
+### 3. Categories (`src/hooks/useCategories.ts` + `src/data/mockData.ts`)
+- Add default dividend categories (e.g., "Дивиденды") to `CASHFLOW_CATEGORIES`
+- Support `"dividend"` type in `getCategoryNames`
 
-- Import and render `PnLSankeyChart` between the header/currency selector and the pivot table
-- Pass `incomeCategories`, `expenseCategories`, `totalIncome`, `totalExpense`, `netProfit`, and `baseCurrency` as props
-- Only render when data exists (`monthKeys.length > 0`)
+### 4. Transaction Form (`src/components/TransactionSheet.tsx` + `MobileTransactionDrawer.tsx`)
+- Add "Дивиденды" as a 4th type option in the type selector
+- Dividend form behaves like expense: account selector, amount, currency, date, category, description
+- No "Месяц ОПУ" needed (or auto-filled but irrelevant since PnL ignores it)
 
-## Technical Notes
+### 5. Cashflow Report (`src/pages/CashflowReport.tsx`)
+- Show dividends as a separate section row (like transfers), or group under expenses -- separate "ДИВИДЕНДЫ" section below profit makes more sense
+- Dividends reduce net cash flow but appear after the profit line
 
-- Use `import { Sankey, Tooltip } from "recharts"` — the Sankey component expects `{ nodes: [{name}], links: [{source, target, value}] }` where source/target are numeric indices
-- Custom `node` prop for rendering labeled rectangles with amounts
-- Custom `link` prop for gradient-colored flows (green for income side, red for expense side)
-- Chart height ~400px, responsive width via the existing `ChartContainer` or a simple div
-- On mobile, the chart scrolls horizontally or stacks vertically with smaller font
+### 6. PnL Report (`src/pages/PnLReport.tsx`)
+- Already filters `t.type !== "transfer"` -- add `&& t.type !== "dividend"` to exclude dividends from PnL
 
-&nbsp;
+### 7. Transaction List & Mobile List
+- Show dividend transactions with a distinct color (e.g., orange/purple)
+- Display in lists like any other transaction
 
-Period is selected separately for sankey chart. 
+### 8. Account Balances (`src/hooks/useAccounts.ts`)
+- Dividends reduce the account balance (treat as outflow, like expense)
+
+## Report Layout (Cashflow)
+
+```text
+ДОХОДЫ          ...
+  CRM           ...
+  ...
+РАСХОДЫ         ...
+  oylik         ...
+  ...
+ПРИБЫЛЬ (по кассе)  Income - Expense
+ДИВИДЕНДЫ       ...        ← new section
+ПЕРЕВОДЫ        ...
+```
+
+Profit line stays as Income minus Expense. Dividends shown separately below, not affecting profit calculation.
+
