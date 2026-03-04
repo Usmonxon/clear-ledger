@@ -1,4 +1,4 @@
-export type TransactionType = "income" | "expense" | "transfer";
+export type TransactionType = "income" | "expense" | "transfer" | "dividend";
 export type Currency = "UZS" | "USD" | "RUB";
 
 export interface Transaction {
@@ -54,6 +54,7 @@ export const CASHFLOW_CATEGORIES = {
     "arenda",
   ],
   transfer: ["PEREVOD"],
+  dividend: ["Дивиденды"],
 };
 
 export const PNL_CATEGORIES = {

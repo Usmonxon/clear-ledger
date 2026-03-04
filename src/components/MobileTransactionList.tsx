@@ -33,6 +33,7 @@ const typeColors: Record<TransactionType, string> = {
   income: "bg-income",
   expense: "bg-expense",
   transfer: "bg-transfer",
+  dividend: "bg-dividend",
 };
 
 const periods = [
@@ -111,8 +112,8 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
               <div className="space-y-0.5">
                 {txns.map((t) => {
                   const IconComp = categoryIconMap[t.cashflow_category] || ShoppingCart;
-                  const amountColor = t.type === "income" ? "text-income" : t.type === "expense" ? "text-expense" : "text-transfer";
-                  const sign = t.type === "income" ? "+" : t.type === "expense" ? "−" : "";
+                  const amountColor = t.type === "income" ? "text-income" : t.type === "expense" ? "text-expense" : t.type === "dividend" ? "text-dividend" : "text-transfer";
+                  const sign = t.type === "income" ? "+" : (t.type === "expense" || t.type === "dividend") ? "−" : "";
                   return (
                     <button
                       key={t.id}

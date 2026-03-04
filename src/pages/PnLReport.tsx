@@ -48,8 +48,8 @@ export default function PnLReport() {
   const { monthKeys, data, missingRates } = useMemo(() => {
     const missing = new Set<string>();
     const filtered = isUnified
-      ? transactions.filter((t) => t.type !== "transfer")
-      : transactions.filter((t) => t.currency === baseCurrency && t.type !== "transfer");
+      ? transactions.filter((t) => t.type !== "transfer" && t.type !== "dividend")
+      : transactions.filter((t) => t.currency === baseCurrency && t.type !== "transfer" && t.type !== "dividend");
     const monthKeys = buildMonthColumns(filtered);
 
     const incomeCategories = new Map<string, Map<string, number>>();

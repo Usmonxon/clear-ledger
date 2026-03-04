@@ -224,7 +224,7 @@ export type Database = {
     }
     Enums: {
       currency_type: "UZS" | "USD" | "RUB"
-      transaction_type: "income" | "expense" | "transfer"
+      transaction_type: "income" | "expense" | "transfer" | "dividend"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -353,7 +353,7 @@ export const Constants = {
   public: {
     Enums: {
       currency_type: ["UZS", "USD", "RUB"],
-      transaction_type: ["income", "expense", "transfer"],
+      transaction_type: ["income", "expense", "transfer", "dividend"],
     },
   },
 } as const

@@ -50,6 +50,10 @@
     --transfer-foreground: 0 0% 100%;
     --transfer-muted: 215 50% 94%;
 
+    --dividend: 280 60% 55%;
+    --dividend-foreground: 0 0% 100%;
+    --dividend-muted: 280 40% 94%;
+
     --sidebar-background: 215 25% 15%;
     --sidebar-foreground: 210 15% 80%;
     --sidebar-primary: 152 55% 50%;
@@ -92,6 +96,9 @@
     --sidebar-accent-foreground: 210 15% 90%;
     --sidebar-border: 215 25% 15%;
     --sidebar-ring: 152 55% 50%;
+    --dividend: 280 60% 60%;
+    --dividend-foreground: 0 0% 100%;
+    --dividend-muted: 280 30% 20%;
     --font-sans: Montserrat, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   }
 }
@@ -136,6 +143,10 @@
 
   .amount-transfer {
     @apply text-transfer font-medium font-mono;
+  }
+
+  .amount-dividend {
+    @apply text-dividend font-medium font-mono;
   }
 
   .matrix-header {

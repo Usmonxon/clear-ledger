@@ -54,6 +54,8 @@ export default function CashflowReport() {
     const incomeCategories = new Map<string, Map<string, number>>();
     const expenseCategories = new Map<string, Map<string, number>>();
     const transferTotals = new Map<string, number>();
+    const dividendCategories = new Map<string, Map<string, number>>();
+    const dividendTotals = new Map<string, number>();
 
     filtered.forEach((t) => {
       if (!t.transaction_date) return;
@@ -77,6 +79,12 @@ export default function CashflowReport() {
       if (t.type === "transfer") {
         transferTotals.set(monthKey, (transferTotals.get(monthKey) || 0) + amt);
       }
+      if (t.type === "dividend") {
+        if (!dividendCategories.has(t.cashflow_category)) dividendCategories.set(t.cashflow_category, new Map());
+        const catMap = dividendCategories.get(t.cashflow_category)!;
+        catMap.set(monthKey, (catMap.get(monthKey) || 0) + amt);
+        dividendTotals.set(monthKey, (dividendTotals.get(monthKey) || 0) + amt);
+      }
     });
 
     const incomeTotals = new Map<string, number>();
@@ -90,7 +98,7 @@ export default function CashflowReport() {
       expenseTotals.set(mk, expSum);
     });
 
-    return { monthKeys, data: { incomeCategories, expenseCategories, transferTotals, incomeTotals, expenseTotals }, missingRates: missing };
+    return { monthKeys, data: { incomeCategories, expenseCategories, transferTotals, dividendCategories, dividendTotals, incomeTotals, expenseTotals }, missingRates: missing };
   }, [transactions, currencyMode, baseCurrency, isUnified, convert]);
 
   const yearTotal = (map: Map<string, number>) => { let s = 0; map.forEach((v) => (s += v)); return s; };
@@ -203,6 +211,28 @@ export default function CashflowReport() {
                   );
                 })}
               </tr>
+
+              {/* DIVIDENDS */}
+              {yearTotal(data.dividendTotals) > 0 && (
+                <>
+                  <tr className="bg-dividend-muted">
+                    <td className="px-3 py-1.5 font-bold text-sm text-dividend sticky left-0 bg-dividend-muted z-10">ДИВИДЕНДЫ</td>
+                    <td className="matrix-cell font-bold text-dividend">{formatAmountShort(yearTotal(data.dividendTotals))}</td>
+                    {monthKeys.map((mk) => (
+                      <td key={mk} className="matrix-cell font-bold text-dividend">{formatAmountShort(data.dividendTotals.get(mk) || 0)}</td>
+                    ))}
+                  </tr>
+                  {Array.from(data.dividendCategories.entries()).map(([cat, catMap]) => (
+                    <tr key={cat} className="hover:bg-muted/30">
+                      <td className="matrix-subcategory sticky left-0 bg-card z-10">{cat}</td>
+                      <td className="matrix-cell text-muted-foreground">{formatAmountShort(catYearTotal(catMap))}</td>
+                      {monthKeys.map((mk) => (
+                        <td key={mk} className="matrix-cell">{formatAmountShort(catMap.get(mk) || 0)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </>
+              )}
 
               {/* TRANSFERS */}
               {yearTotal(data.transferTotals) > 0 && (

@@ -45,7 +45,7 @@ export default function Accounts() {
       if (t.type === "income") {
         const entry = balanceMap.get(accountName);
         if (entry) entry.current += t.amount;
-      } else if (t.type === "expense") {
+      } else if (t.type === "expense" || t.type === "dividend") {
         const entry = balanceMap.get(accountName);
         if (entry) entry.current -= t.amount;
       } else if (t.type === "transfer") {

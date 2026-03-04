@@ -18,12 +18,14 @@ const typeStyles: Record<TransactionType, string> = {
   income: "bg-income-muted text-income border-income/20",
   expense: "bg-expense-muted text-expense border-expense/20",
   transfer: "bg-transfer-muted text-transfer border-transfer/20",
+  dividend: "bg-dividend-muted text-dividend border-dividend/20",
 };
 
 const typeLabels: Record<TransactionType, string> = {
   income: "ДОХОД",
   expense: "РАСХОД",
   transfer: "ПЕРЕВОД",
+  dividend: "ДИВИДЕНДЫ",
 };
 
 export default function Transactions() {
@@ -169,6 +171,7 @@ export default function Transactions() {
             <SelectItem value="income">Доход</SelectItem>
             <SelectItem value="expense">Расход</SelectItem>
             <SelectItem value="transfer">Перевод</SelectItem>
+            <SelectItem value="dividend">Дивиденды</SelectItem>
           </SelectContent>
         </Select>
         <Select value={currencyFilter} onValueChange={setCurrencyFilter}>
@@ -221,7 +224,7 @@ export default function Transactions() {
                       : t.wallet_account
                     }
                   </td>
-                  <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : "amount-transfer"}`}>
+                  <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
                     {formatAmountShort(t.amount)}
                     {t.target_amount != null && t.target_currency && (
                       <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
