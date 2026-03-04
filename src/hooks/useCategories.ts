@@ -8,7 +8,7 @@ export type Category = {
   id: string;
   user_id: string;
   name: string;
-  type: "income" | "expense" | "transfer";
+  type: "income" | "expense" | "transfer" | "dividend";
   created_at: string;
 };
 
@@ -62,12 +62,13 @@ export function useCategories() {
       ...CASHFLOW_CATEGORIES.income.map((name) => ({ name, type: "income" as const, user_id: user.id })),
       ...CASHFLOW_CATEGORIES.expense.map((name) => ({ name, type: "expense" as const, user_id: user.id })),
       ...CASHFLOW_CATEGORIES.transfer.map((name) => ({ name, type: "transfer" as const, user_id: user.id })),
+      ...CASHFLOW_CATEGORIES.dividend.map((name) => ({ name, type: "dividend" as const, user_id: user.id })),
     ];
     await supabase.from("categories").insert(rows);
     queryClient.invalidateQueries({ queryKey: ["categories"] });
   };
 
-  const getCategoryNames = (type: "income" | "expense" | "transfer") =>
+  const getCategoryNames = (type: "income" | "expense" | "transfer" | "dividend") =>
     categories.filter((c) => c.type === type).map((c) => c.name);
 
   return { categories, isLoading, addMutation, deleteMutation, seedDefaults, getCategoryNames };

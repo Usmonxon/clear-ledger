@@ -218,6 +218,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
                 <SelectItem value="income">Доход</SelectItem>
                 <SelectItem value="expense">Расход</SelectItem>
                 <SelectItem value="transfer">Перевод</SelectItem>
+                <SelectItem value="dividend">Дивиденды</SelectItem>
               </SelectContent>
             </Select>
           </div>

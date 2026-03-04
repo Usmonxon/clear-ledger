@@ -25,12 +25,14 @@ const typeOptions: { value: TransactionType; label: string }[] = [
   { value: "expense", label: "Расход" },
   { value: "income", label: "Доход" },
   { value: "transfer", label: "Перевод" },
+  { value: "dividend", label: "Дивиденды" },
 ];
 
 const typeColor: Record<TransactionType, string> = {
   expense: "text-expense",
   income: "text-income",
   transfer: "text-transfer",
+  dividend: "text-dividend",
 };
 
 interface Props {

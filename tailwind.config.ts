@@ -93,6 +93,11 @@ export default {
   				foreground: 'hsl(var(--transfer-foreground))',
   				muted: 'hsl(var(--transfer-muted))'
   			},
+  			dividend: {
+  				DEFAULT: 'hsl(var(--dividend))',
+  				foreground: 'hsl(var(--dividend-foreground))',
+  				muted: 'hsl(var(--dividend-muted))'
+  			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
