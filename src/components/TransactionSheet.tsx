@@ -140,7 +140,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   };
 
   const handleSubmit = () => {
-    if (!amount || !category) return;
+    if (!amount || (!category && type !== "dividend")) return;
     if (type === "transfer" && (!fromAccount || !toAccount)) {
       toast({ title: "Укажите счета перевода", variant: "destructive" });
       return;
@@ -158,8 +158,8 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       amount: parseFloat(amount),
       currency: effectiveCurrency,
       wallet_account: type === "transfer" ? fromAccount : wallet,
-      cashflow_category: category,
-      pnl_category: category,
+      cashflow_category: category || (type === "dividend" ? "Дивиденды" : ""),
+      pnl_category: category || (type === "dividend" ? "Дивиденды" : ""),
       description,
       type,
       from_account: type === "transfer" ? fromAccount : null,
