@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Pencil, Check, X, Mail, Shield, ShieldOff } from "lucide-react";
+import { Plus, Pencil, Check, X, Mail, Shield, ShieldOff, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme } from "next-themes";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
 import { useAuth } from "@/hooks/useAuth";
@@ -458,6 +459,22 @@ function AccessTab() {
     </div>
   );
 }
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex items-center gap-3">
+      <p className="text-xs text-muted-foreground">Тема оформления</p>
+      <Select value={theme || "system"} onValueChange={setTheme}>
+        <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent className="bg-popover">
+          <SelectItem value="light"><span className="flex items-center gap-2"><Sun className="h-3.5 w-3.5" /> Светлая</span></SelectItem>
+          <SelectItem value="dark"><span className="flex items-center gap-2"><Moon className="h-3.5 w-3.5" /> Тёмная</span></SelectItem>
+          <SelectItem value="system"><span className="flex items-center gap-2"><Monitor className="h-3.5 w-3.5" /> Системная</span></SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
 export default function Settings() {
   return (
@@ -466,6 +483,15 @@ export default function Settings() {
         <h1 className="text-lg font-semibold">Настройки</h1>
         <p className="text-xs text-muted-foreground">Справочники, счета и управление доступом</p>
       </div>
+
+      <Card className="border mb-4">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <CardTitle className="text-sm">Внешний вид</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <ThemeSelector />
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="accounts">
         <TabsList className="h-8">
