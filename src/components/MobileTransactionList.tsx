@@ -138,23 +138,6 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
         )}
       </div>
 
-      {/* Period filter */}
-      <div className="fixed bottom-14 inset-x-0 bg-card/95 backdrop-blur-sm border-t px-3 py-2 flex gap-1.5 justify-center pb-safe-offset">
-        {periods.map((p, i) => (
-          <button
-            key={p.label}
-            onClick={() => setPeriodIdx(i)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              i === periodIdx
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       {/* FAB */}
       <button
         onClick={onAdd}
