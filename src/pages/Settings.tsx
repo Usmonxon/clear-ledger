@@ -459,8 +459,24 @@ function AccessTab() {
     </div>
   );
 }
+function ThemeSelector() {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div className="flex items-center gap-3">
+      <p className="text-xs text-muted-foreground">Тема оформления</p>
+      <Select value={theme || "system"} onValueChange={setTheme}>
+        <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue /></SelectTrigger>
+        <SelectContent className="bg-popover">
+          <SelectItem value="light"><span className="flex items-center gap-2"><Sun className="h-3.5 w-3.5" /> Светлая</span></SelectItem>
+          <SelectItem value="dark"><span className="flex items-center gap-2"><Moon className="h-3.5 w-3.5" /> Тёмная</span></SelectItem>
+          <SelectItem value="system"><span className="flex items-center gap-2"><Monitor className="h-3.5 w-3.5" /> Системная</span></SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
 
-export default function Settings() {
+
   return (
     <div className="p-4 space-y-4 max-w-3xl">
       <div>
