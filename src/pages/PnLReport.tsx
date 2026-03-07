@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { formatAmountShort, type Transaction } from "@/data/mockData";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileReportTabs } from "@/components/MobileReportTabs";
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
   const set = new Set<string>();
