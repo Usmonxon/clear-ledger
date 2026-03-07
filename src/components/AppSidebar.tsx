@@ -42,6 +42,11 @@ const navItems = [
 export function AppSidebar() {
   const { setOpenMobile, isMobile } = useSidebar();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
 
   const handleNavClick = () => {
     if (isMobile) setOpenMobile(false);
