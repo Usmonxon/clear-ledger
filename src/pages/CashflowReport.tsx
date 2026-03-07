@@ -28,6 +28,7 @@ type CurrencyMode = "UZS" | "USD" | "RUB" | "ALL_UZS" | "ALL_USD" | "ALL_RUB";
 export default function CashflowReport() {
   const { user } = useAuth();
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
+  const isMobile = useIsMobile();
   const { convert, isLoading: ratesLoading } = useExchangeRates();
 
   const isUnified = currencyMode.startsWith("ALL_");
