@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format, parseISO, subDays, subWeeks, subMonths, subYears, isAfter } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Search, Plus, ShoppingCart, TrendingUp, ArrowLeftRight, Briefcase, Coffee, Home, Zap, CreditCard, DollarSign, Building2, Truck, BookOpen, Wrench, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -36,13 +36,6 @@ const typeColors: Record<TransactionType, string> = {
   dividend: "bg-dividend",
 };
 
-const periods = [
-  { label: "7 дней", getValue: () => subDays(new Date(), 7) },
-  { label: "30 дней", getValue: () => subDays(new Date(), 30) },
-  { label: "12 нед.", getValue: () => subWeeks(new Date(), 12) },
-  { label: "6 мес.", getValue: () => subMonths(new Date(), 6) },
-  { label: "1 год", getValue: () => subYears(new Date(), 1) },
-];
 
 interface Props {
   transactions: TransactionFull[];
@@ -53,12 +46,9 @@ interface Props {
 
 export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect }: Props) {
   const [search, setSearch] = useState("");
-  const [periodIdx, setPeriodIdx] = useState(1); // default 30 days
 
   const filtered = useMemo(() => {
-    const cutoff = periods[periodIdx].getValue();
     return transactions.filter((t) => {
-      if (!isAfter(parseISO(t.transaction_date), cutoff)) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -69,7 +59,7 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
       }
       return true;
     });
-  }, [transactions, search, periodIdx]);
+  }, [transactions, search]);
 
   // Group by date
   const grouped = useMemo(() => {
@@ -148,27 +138,10 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
         )}
       </div>
 
-      {/* Period filter */}
-      <div className="fixed bottom-14 inset-x-0 bg-card/95 backdrop-blur-sm border-t px-3 py-2 flex gap-1.5 justify-center pb-safe-offset">
-        {periods.map((p, i) => (
-          <button
-            key={p.label}
-            onClick={() => setPeriodIdx(i)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              i === periodIdx
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
       {/* FAB */}
       <button
         onClick={onAdd}
-        className="fixed right-5 bottom-32 h-14 w-14 rounded-full bg-income text-income-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform z-50"
+        className="fixed right-5 bottom-20 h-14 w-14 rounded-full bg-income text-income-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform z-50"
       >
         <Plus className="h-7 w-7" />
       </button>
