@@ -141,7 +141,7 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
       {/* FAB */}
       <button
         onClick={onAdd}
-        className="fixed right-5 bottom-32 h-14 w-14 rounded-full bg-income text-income-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform z-50"
+        className="fixed right-5 bottom-20 h-14 w-14 rounded-full bg-income text-income-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform z-50"
       >
         <Plus className="h-7 w-7" />
       </button>
