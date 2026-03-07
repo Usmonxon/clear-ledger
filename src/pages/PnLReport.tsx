@@ -108,7 +108,7 @@ export default function PnLReport() {
 
   return (
     <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      {isMobile && <MobileReportTabs />}
         <div>
           <h1 className="text-lg font-semibold">ОПУ — Отчёт о прибылях и убытках</h1>
           <p className="text-xs text-muted-foreground">PnL по месяцу начисления (Месяц ОПУ)</p>

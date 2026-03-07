@@ -117,7 +117,7 @@ export default function CashflowReport() {
 
   return (
     <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
+      {isMobile && <MobileReportTabs />}
         <div>
           <h1 className="text-lg font-semibold">ДДС — Отчёт о движении денежных средств</h1>
           <p className="text-xs text-muted-foreground">Cashflow по месяцам (дата ДДС)</p>
