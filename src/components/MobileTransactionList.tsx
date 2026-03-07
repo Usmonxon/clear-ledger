@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format, parseISO, subDays, subWeeks, subMonths, subYears, isAfter } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Search, Plus, ShoppingCart, TrendingUp, ArrowLeftRight, Briefcase, Coffee, Home, Zap, CreditCard, DollarSign, Building2, Truck, BookOpen, Wrench, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
