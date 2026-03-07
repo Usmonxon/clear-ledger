@@ -36,13 +36,6 @@ const typeColors: Record<TransactionType, string> = {
   dividend: "bg-dividend",
 };
 
-const periods = [
-  { label: "7 дней", getValue: () => subDays(new Date(), 7) },
-  { label: "30 дней", getValue: () => subDays(new Date(), 30) },
-  { label: "12 нед.", getValue: () => subWeeks(new Date(), 12) },
-  { label: "6 мес.", getValue: () => subMonths(new Date(), 6) },
-  { label: "1 год", getValue: () => subYears(new Date(), 1) },
-];
 
 interface Props {
   transactions: TransactionFull[];
