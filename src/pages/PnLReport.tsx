@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
 import { formatAmountShort, type Transaction } from "@/data/mockData";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileReportTabs } from "@/components/MobileReportTabs";
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
   const set = new Set<string>();
@@ -28,6 +30,7 @@ export default function PnLReport() {
   const { user } = useAuth();
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
   const { convert, isLoading: ratesLoading } = useExchangeRates();
+  const isMobile = useIsMobile();
 
   const isUnified = currencyMode.startsWith("ALL_");
   const baseCurrency = isUnified ? currencyMode.replace("ALL_", "") : currencyMode;
@@ -106,6 +109,7 @@ export default function PnLReport() {
 
   return (
     <div className="p-4 space-y-3">
+      {isMobile && <MobileReportTabs />}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">ОПУ — Отчёт о прибылях и убытках</h1>
