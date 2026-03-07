@@ -110,6 +110,13 @@ export function AppSidebar() {
       <SidebarFooter className="p-2 border-t border-sidebar-border space-y-1">
         <Button
           variant="ghost"
+          onClick={toggleTheme}
+          className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
+          {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+          <span>{theme === "dark" ? "Светлая тема" : "Тёмная тема"}</span>
+        </Button>
+        <Button
+          variant="ghost"
           onClick={handleExport}
           className="w-full justify-start gap-2.5 h-9 px-2.5 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sm">
           <Download className="h-4 w-4 shrink-0" />

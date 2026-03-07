@@ -468,6 +468,15 @@ export default function Settings() {
         <p className="text-xs text-muted-foreground">Справочники, счета и управление доступом</p>
       </div>
 
+      <Card className="border mb-4">
+        <CardHeader className="pb-2 pt-3 px-4">
+          <CardTitle className="text-sm">Внешний вид</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <ThemeSelector />
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="accounts">
         <TabsList className="h-8">
           <TabsTrigger value="accounts" className="text-xs h-7">Счета</TabsTrigger>
