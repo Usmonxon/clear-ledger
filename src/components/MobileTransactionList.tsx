@@ -59,7 +59,7 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
       }
       return true;
     });
-  }, [transactions, search, periodIdx]);
+  }, [transactions, search]);
 
   // Group by date
   const grouped = useMemo(() => {
