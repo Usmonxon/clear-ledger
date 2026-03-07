@@ -29,7 +29,7 @@ type CurrencyMode = "UZS" | "USD" | "RUB" | "ALL_UZS" | "ALL_USD" | "ALL_RUB";
 export default function PnLReport() {
   const { user } = useAuth();
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
-  const { convert, isLoading: ratesLoading } = useExchangeRates();
+  const isMobile = useIsMobile();
 
   const isUnified = currencyMode.startsWith("ALL_");
   const baseCurrency = isUnified ? currencyMode.replace("ALL_", "") : currencyMode;
