@@ -46,12 +46,9 @@ interface Props {
 
 export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect }: Props) {
   const [search, setSearch] = useState("");
-  const [periodIdx, setPeriodIdx] = useState(1); // default 30 days
 
   const filtered = useMemo(() => {
-    const cutoff = periods[periodIdx].getValue();
     return transactions.filter((t) => {
-      if (!isAfter(parseISO(t.transaction_date), cutoff)) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
