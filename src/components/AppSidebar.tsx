@@ -6,8 +6,11 @@ import {
   Settings,
   LogOut,
   Wallet,
-  Download } from
+  Download,
+  Sun,
+  Moon } from
 "lucide-react";
+import { useTheme } from "next-themes";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
