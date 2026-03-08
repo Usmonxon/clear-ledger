@@ -222,7 +222,7 @@ export default function Transactions() {
                       : t.wallet_account
                     }
                   </td>
-                  <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
+                  <td className={`px-3 text-right text-xs tabular-nums ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
                     {formatAmountShort(t.amount)}
                     {t.target_amount != null && t.target_currency && (
                       <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
