@@ -61,9 +61,7 @@
     --sidebar-border: 215 20% 25%;
     --sidebar-ring: 152 55% 50%;
 
-    --chart-income: 152 55% 42%;
-    --chart-expense: 350 65% 55%;
-    --font-sans: Montserrat, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   }
 
   .dark {
