@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       manifest: {
-        name: "FinanceCo",
-        short_name: "FinanceCo",
+        name: "finco",
+        short_name: "finco",
         description: "Финансовый учёт для бизнеса",
         theme_color: "#09090b",
         background_color: "#09090b",
