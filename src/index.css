@@ -94,9 +94,7 @@
     --sidebar-ring: 152 55% 50%;
     --dividend: 280 60% 60%;
     --dividend-foreground: 0 0% 100%;
-    --dividend-muted: 280 30% 20%;
-    --font-sans: Montserrat, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-  }
+    --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 }
 
 @layer base {
