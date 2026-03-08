@@ -212,7 +212,7 @@ export default function Transactions() {
             ) : (
               filtered.map((t) => (
                 <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
-                  <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
+                  <td className="px-3 text-xs tabular-nums">{t.transaction_date}</td>
                   <td className="px-3">
                     <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
                   </td>
@@ -222,7 +222,7 @@ export default function Transactions() {
                       : t.wallet_account
                     }
                   </td>
-                  <td className={`px-3 text-right font-mono text-xs ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
+                  <td className={`px-3 text-right text-xs tabular-nums ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
                     {formatAmountShort(t.amount)}
                     {t.target_amount != null && t.target_currency && (
                       <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
@@ -233,7 +233,7 @@ export default function Transactions() {
                   <td className="px-3 text-center">
                     {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
                   </td>
-                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
+                  <td className="px-3 text-xs tabular-nums text-muted-foreground">{t.reporting_month}</td>
                 </tr>
               ))
             )}

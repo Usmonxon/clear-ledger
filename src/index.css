@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-@import url("https://fonts.googleapis.com/css2?family=Montserrat&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -63,9 +61,7 @@
     --sidebar-border: 215 20% 25%;
     --sidebar-ring: 152 55% 50%;
 
-    --chart-income: 152 55% 42%;
-    --chart-expense: 350 65% 55%;
-    --font-sans: Montserrat, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
   }
 
   .dark {
@@ -98,9 +94,7 @@
     --sidebar-ring: 152 55% 50%;
     --dividend: 280 60% 60%;
     --dividend-foreground: 0 0% 100%;
-    --dividend-muted: 280 30% 20%;
-    --font-sans: Montserrat, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
-  }
+    --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
 }
 
 @layer base {
@@ -108,9 +102,7 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Fira Sans', system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.4;
   }
@@ -134,19 +126,19 @@
   }
 
   .amount-income {
-    @apply text-income font-medium font-mono;
+    @apply text-income font-medium tabular-nums;
   }
 
   .amount-expense {
-    @apply text-expense font-medium font-mono;
+    @apply text-expense font-medium tabular-nums;
   }
 
   .amount-transfer {
-    @apply text-transfer font-medium font-mono;
+    @apply text-transfer font-medium tabular-nums;
   }
 
   .amount-dividend {
-    @apply text-dividend font-medium font-mono;
+    @apply text-dividend font-medium tabular-nums;
   }
 
   .matrix-header {
@@ -162,7 +154,7 @@
   }
 
   .matrix-cell {
-    @apply text-right font-mono text-sm tabular-nums px-3 py-1.5;
+    @apply text-right text-sm tabular-nums px-3 py-1.5;
   }
 
   .pb-safe {
