@@ -459,6 +459,89 @@ function AccessTab() {
     </div>
   );
 }
+function ProfileTab() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [displayName, setDisplayName] = useState("");
+  const [companyName, setCompanyName] = useState("");
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || "");
+      setCompanyName(profile.company_name || "");
+    }
+  }, [profile]);
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ display_name, company_name }: { display_name: string; company_name: string }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ display_name, company_name, updated_at: new Date().toISOString() })
+        .eq("id", user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      toast({ title: "Профиль обновлён" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
+  const handleSave = () => {
+    updateMutation.mutate({ display_name: displayName.trim(), company_name: companyName.trim() });
+  };
+
+  if (isLoading) return <p className="text-xs text-muted-foreground">Загрузка...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Email</label>
+          <Input value={user?.email || ""} disabled className="h-8 text-xs bg-muted" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Имя</label>
+          <Input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Ваше имя"
+            className="h-8 text-xs"
+          />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Компания</label>
+          <Input
+            value={companyName}
+            onChange={(e) => setCompanyName(e.target.value)}
+            placeholder="Название компании"
+            className="h-8 text-xs"
+          />
+        </div>
+      </div>
+      <Button onClick={handleSave} size="sm" className="h-8 text-xs" disabled={updateMutation.isPending}>
+        <Check className="h-3.5 w-3.5 mr-1" />
+        Сохранить
+      </Button>
+    </div>
+  );
+}
+
 function ThemeSelector() {
   const { theme, setTheme } = useTheme();
   return (
