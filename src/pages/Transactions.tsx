@@ -212,7 +212,7 @@ export default function Transactions() {
             ) : (
               filtered.map((t) => (
                 <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
-                  <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
+                  <td className="px-3 text-xs tabular-nums">{t.transaction_date}</td>
                   <td className="px-3">
                     <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
                   </td>
