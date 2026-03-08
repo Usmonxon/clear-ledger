@@ -126,19 +126,19 @@
   }
 
   .amount-income {
-    @apply text-income font-medium font-mono;
+    @apply text-income font-medium tabular-nums;
   }
 
   .amount-expense {
-    @apply text-expense font-medium font-mono;
+    @apply text-expense font-medium tabular-nums;
   }
 
   .amount-transfer {
-    @apply text-transfer font-medium font-mono;
+    @apply text-transfer font-medium tabular-nums;
   }
 
   .amount-dividend {
-    @apply text-dividend font-medium font-mono;
+    @apply text-dividend font-medium tabular-nums;
   }
 
   .matrix-header {
