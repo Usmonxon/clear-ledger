@@ -197,7 +197,7 @@ export default function Transactions() {
               <th className="text-left px-3 py-2">Вал.</th>
               <th className="text-left px-3 py-2 min-w-[180px]">Комментарий</th>
               <th className="text-center px-3 py-2">📎</th>
-              <th className="text-left px-3 py-2">Мес. ОПУ</th>
+              <th className="text-left px-3 py-2 whitespace-nowrap">Мес. ОПУ</th>
             </tr>
           </thead>
           <tbody>
