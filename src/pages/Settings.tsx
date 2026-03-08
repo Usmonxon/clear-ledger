@@ -564,25 +564,36 @@ export default function Settings() {
     <div className="p-4 space-y-4 max-w-3xl">
       <div>
         <h1 className="text-lg font-semibold">Настройки</h1>
-        <p className="text-xs text-muted-foreground">Справочники, счета и управление доступом</p>
+        <p className="text-xs text-muted-foreground">Профиль, справочники, счета и управление доступом</p>
       </div>
 
-      <Card className="border mb-4">
-        <CardHeader className="pb-2 pt-3 px-4">
-          <CardTitle className="text-sm">Внешний вид</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          <ThemeSelector />
-        </CardContent>
-      </Card>
-
-      <Tabs defaultValue="accounts">
+      <Tabs defaultValue="profile">
         <TabsList className="h-8">
+          <TabsTrigger value="profile" className="text-xs h-7">Профиль</TabsTrigger>
           <TabsTrigger value="accounts" className="text-xs h-7">Счета</TabsTrigger>
           <TabsTrigger value="categories" className="text-xs h-7">Категории</TabsTrigger>
           <TabsTrigger value="rates" className="text-xs h-7">Курсы валют</TabsTrigger>
           <TabsTrigger value="access" className="text-xs h-7">Доступ</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="profile" className="mt-4 space-y-4">
+          <Card className="border">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-sm">Профиль</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <ProfileTab />
+            </CardContent>
+          </Card>
+          <Card className="border">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-sm">Внешний вид</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <ThemeSelector />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="accounts" className="mt-4">
           <Card className="border">
