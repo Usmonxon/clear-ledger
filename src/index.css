@@ -102,9 +102,7 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Fira Sans', system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.4;
   }
