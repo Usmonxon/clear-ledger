@@ -213,7 +213,6 @@ export default function Transactions() {
               filtered.map((t) => (
                 <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
                   <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
-                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
                   <td className="px-3">
                     <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
                   </td>
@@ -232,13 +231,9 @@ export default function Transactions() {
                   <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
                   <td className="px-3 text-xs text-muted-foreground truncate max-w-[220px]">{t.description}</td>
                   <td className="px-3 text-center">
-                    <Badge className={`text-[10px] border px-1.5 py-0 font-medium ${typeStyles[t.type]}`}>
-                      {typeLabels[t.type]}
-                    </Badge>
-                  </td>
-                  <td className="px-3 text-center">
                     {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
                   </td>
+                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
                 </tr>
               ))
             )}
