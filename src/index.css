@@ -154,7 +154,7 @@
   }
 
   .matrix-cell {
-    @apply text-right font-mono text-sm tabular-nums px-3 py-1.5;
+    @apply text-right text-sm tabular-nums px-3 py-1.5;
   }
 
   .pb-safe {

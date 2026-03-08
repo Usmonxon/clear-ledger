@@ -233,7 +233,7 @@ export default function Transactions() {
                   <td className="px-3 text-center">
                     {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
                   </td>
-                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
+                  <td className="px-3 text-xs tabular-nums text-muted-foreground">{t.reporting_month}</td>
                 </tr>
               ))
             )}

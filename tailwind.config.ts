@@ -14,16 +14,16 @@ export default {
   	},
   	extend: {
   		fontFamily: {
-  			sans: [
-  				'Montserrat',
-  				'ui-sans-serif',
-  				'system-ui',
-  				'sans-serif',
-  				'Apple Color Emoji',
-  				'Segoe UI Emoji',
-  				'Segoe UI Symbol',
-  				'Noto Color Emoji'
-  			],
+			sans: [
+				'Fira Sans',
+				'ui-sans-serif',
+				'system-ui',
+				'sans-serif',
+				'Apple Color Emoji',
+				'Segoe UI Emoji',
+				'Segoe UI Symbol',
+				'Noto Color Emoji'
+			],
   			mono: [
   				'JetBrains Mono',
   				'ui-monospace',
