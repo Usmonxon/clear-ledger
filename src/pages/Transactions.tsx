@@ -191,14 +191,13 @@ export default function Transactions() {
           <thead>
             <tr>
               <th className="text-left px-3 py-2">Дата</th>
-              <th className="text-left px-3 py-2">Мес. ОПУ</th>
               <th className="text-left px-3 py-2">Категория</th>
               <th className="text-left px-3 py-2">Счёт</th>
               <th className="text-right px-3 py-2">Сумма</th>
               <th className="text-left px-3 py-2">Вал.</th>
               <th className="text-left px-3 py-2 min-w-[180px]">Комментарий</th>
-              <th className="text-center px-3 py-2">Тип</th>
               <th className="text-center px-3 py-2">📎</th>
+              <th className="text-left px-3 py-2">Мес. ОПУ</th>
             </tr>
           </thead>
           <tbody>
