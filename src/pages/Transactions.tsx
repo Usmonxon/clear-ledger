@@ -203,11 +203,11 @@ export default function Transactions() {
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-xs text-muted-foreground">Загрузка...</td>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Загрузка...</td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-xs text-muted-foreground">Операции не найдены</td>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Операции не найдены</td>
               </tr>
             ) : (
               filtered.map((t) => (
