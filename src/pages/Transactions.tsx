@@ -191,30 +191,28 @@ export default function Transactions() {
           <thead>
             <tr>
               <th className="text-left px-3 py-2">Дата</th>
-              <th className="text-left px-3 py-2">Мес. ОПУ</th>
               <th className="text-left px-3 py-2">Категория</th>
               <th className="text-left px-3 py-2">Счёт</th>
               <th className="text-right px-3 py-2">Сумма</th>
               <th className="text-left px-3 py-2">Вал.</th>
               <th className="text-left px-3 py-2 min-w-[180px]">Комментарий</th>
-              <th className="text-center px-3 py-2">Тип</th>
               <th className="text-center px-3 py-2">📎</th>
+              <th className="text-left px-3 py-2">Мес. ОПУ</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-xs text-muted-foreground">Загрузка...</td>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Загрузка...</td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-3 py-8 text-center text-xs text-muted-foreground">Операции не найдены</td>
+                <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Операции не найдены</td>
               </tr>
             ) : (
               filtered.map((t) => (
                 <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
                   <td className="px-3 font-mono text-xs">{t.transaction_date}</td>
-                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
                   <td className="px-3">
                     <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
                   </td>
@@ -233,13 +231,9 @@ export default function Transactions() {
                   <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
                   <td className="px-3 text-xs text-muted-foreground truncate max-w-[220px]">{t.description}</td>
                   <td className="px-3 text-center">
-                    <Badge className={`text-[10px] border px-1.5 py-0 font-medium ${typeStyles[t.type]}`}>
-                      {typeLabels[t.type]}
-                    </Badge>
-                  </td>
-                  <td className="px-3 text-center">
                     {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
                   </td>
+                  <td className="px-3 font-mono text-xs text-muted-foreground">{t.reporting_month}</td>
                 </tr>
               ))
             )}
