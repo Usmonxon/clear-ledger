@@ -17,7 +17,8 @@ function buildReportSheet(
   transactions: Transaction[],
   monthField: "transaction_date" | "reporting_month",
   label: string,
-  includeTransfers: boolean
+  includeTransfers: boolean,
+  cogsNames?: Set<string>
 ) {
   const filtered = includeTransfers
     ? transactions
