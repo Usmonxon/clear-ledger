@@ -9,6 +9,7 @@ export type Category = {
   user_id: string;
   name: string;
   type: "income" | "expense" | "transfer" | "dividend";
+  is_cogs: boolean;
   created_at: string;
 };
 
