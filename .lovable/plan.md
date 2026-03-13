@@ -1,57 +1,31 @@
 
 
-# Dividends Logic
+## Plan: Add "is_cogs" flag to categories for Net Revenue calculation
 
-Dividends are cash withdrawals by owners that reduce cash (appear in Cashflow/DDS) but do NOT affect profit (excluded from PnL), similar to how transfers are already handled.
+### Overview
+Add a toggle on expense categories in Settings to mark them as "cost of goods sold" (COGS / себестоимость). Then show a **NET REVENUE** row in the PnL report: `Total Income - COGS expenses`.
 
-## Approach
-
-Add `dividend` as a new transaction type. In reports, treat it like an expense in Cashflow but exclude it from PnL (same as transfers).
-
-## Changes
-
-### 1. Database Migration
-- Add `'dividend'` to the `transaction_type` enum: `ALTER TYPE transaction_type ADD VALUE 'dividend'`
-
-### 2. Type Definitions (`src/data/mockData.ts`)
-- Add `"dividend"` to `TransactionType` union
-
-### 3. Categories (`src/hooks/useCategories.ts` + `src/data/mockData.ts`)
-- Add default dividend categories (e.g., "Дивиденды") to `CASHFLOW_CATEGORIES`
-- Support `"dividend"` type in `getCategoryNames`
-
-### 4. Transaction Form (`src/components/TransactionSheet.tsx` + `MobileTransactionDrawer.tsx`)
-- Add "Дивиденды" as a 4th type option in the type selector
-- Dividend form behaves like expense: account selector, amount, currency, date, category, description
-- No "Месяц ОПУ" needed (or auto-filled but irrelevant since PnL ignores it)
-
-### 5. Cashflow Report (`src/pages/CashflowReport.tsx`)
-- Show dividends as a separate section row (like transfers), or group under expenses -- separate "ДИВИДЕНДЫ" section below profit makes more sense
-- Dividends reduce net cash flow but appear after the profit line
-
-### 6. PnL Report (`src/pages/PnLReport.tsx`)
-- Already filters `t.type !== "transfer"` -- add `&& t.type !== "dividend"` to exclude dividends from PnL
-
-### 7. Transaction List & Mobile List
-- Show dividend transactions with a distinct color (e.g., orange/purple)
-- Display in lists like any other transaction
-
-### 8. Account Balances (`src/hooks/useAccounts.ts`)
-- Dividends reduce the account balance (treat as outflow, like expense)
-
-## Report Layout (Cashflow)
-
-```text
-ДОХОДЫ          ...
-  CRM           ...
-  ...
-РАСХОДЫ         ...
-  oylik         ...
-  ...
-ПРИБЫЛЬ (по кассе)  Income - Expense
-ДИВИДЕНДЫ       ...        ← new section
-ПЕРЕВОДЫ        ...
+### Database Change
+Add an `is_cogs` boolean column to the `categories` table:
+```sql
+ALTER TABLE public.categories ADD COLUMN is_cogs boolean NOT NULL DEFAULT false;
 ```
 
-Profit line stays as Income minus Expense. Dividends shown separately below, not affecting profit calculation.
+### Code Changes
+
+1. **`src/hooks/useCategories.ts`** — Update `Category` type to include `is_cogs: boolean`. Add a `toggleCogsMutation` that updates the `is_cogs` flag for a given category ID.
+
+2. **`src/pages/Settings.tsx`** — In the expense `CategorySection`, add a small toggle/icon button on each expense category badge to mark it as COGS (себестоимость). Visually distinguish COGS categories with a different badge style or icon.
+
+3. **`src/pages/PnLReport.tsx`** — Fetch categories list to know which expense categories are COGS. In the `useMemo` calculation, split expenses into two groups: COGS and operating expenses. Add rows to the table:
+   - ДОХОДЫ (total income)
+   - income subcategories...
+   - **СЕБЕСТОИМОСТЬ** (sum of COGS expense categories)
+   - COGS subcategories...
+   - **ВАЛОВАЯ ПРИБЫЛЬ / NET REVENUE** = income - COGS
+   - РАСХОДЫ (operating expenses only, excluding COGS)
+   - expense subcategories...
+   - ЧИСТАЯ ПРИБЫЛЬ = income - all expenses
+
+4. **`src/lib/exportExcel.ts`** — Update the OPU sheet export to include the COGS and Net Revenue rows in the same structure.
 
