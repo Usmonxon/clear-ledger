@@ -148,6 +148,15 @@ export async function exportToExcel() {
     .select("transaction_date, reporting_month, type, cashflow_category, pnl_category, wallet_account, from_account, to_account, amount, currency, target_amount, target_currency, description")
     .order("transaction_date", { ascending: false });
 
+  // Fetch COGS category names for OPU export
+  const { data: catData } = await supabase
+    .from("categories")
+    .select("name, type, is_cogs");
+  const cogsNames = new Set<string>();
+  (catData || []).forEach((c: any) => {
+    if (c.type === "expense" && c.is_cogs) cogsNames.add(c.name);
+  });
+
   if (transactions?.length) {
     const ws = wb.addWorksheet("Операции");
     const cols = Object.keys(transactions[0]);
@@ -155,7 +164,7 @@ export async function exportToExcel() {
     transactions.forEach((t) => ws.addRow(cols.map((c) => (t as any)[c])));
 
     buildReportSheet(wb, "ДДС", transactions as Transaction[], "transaction_date", "ДДС", true);
-    buildReportSheet(wb, "ОПУ", transactions as Transaction[], "reporting_month", "ОПУ", false);
+    buildReportSheet(wb, "ОПУ", transactions as Transaction[], "reporting_month", "ОПУ", false, cogsNames);
   }
 
   // Accounts
