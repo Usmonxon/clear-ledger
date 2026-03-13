@@ -28,7 +28,7 @@ type Member = {
 };
 
 function CategorySection({ type, label }: { type: "income" | "expense" | "transfer"; label: string }) {
-  const { categories, addMutation, deleteMutation, seedDefaults, isLoading } = useCategories();
+  const { categories, addMutation, deleteMutation, toggleCogsMutation, seedDefaults, isLoading } = useCategories();
   const [newName, setNewName] = useState("");
 
   useEffect(() => { seedDefaults(); }, []);
@@ -45,6 +45,11 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
   return (
     <div>
       <p className="text-xs font-medium text-muted-foreground mb-2">{label}</p>
+      {type === "expense" && (
+        <p className="text-[10px] text-muted-foreground mb-2">
+          💡 Нажмите на иконку 💲 чтобы пометить категорию как себестоимость (COGS). Себестоимость вычитается из выручки в отчёте ОПУ.
+        </p>
+      )}
       <div className="flex flex-wrap gap-1.5 mb-2">
         {isLoading ? (
           <span className="text-xs text-muted-foreground">Загрузка...</span>
@@ -56,11 +61,21 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
               key={c.id}
               variant="outline"
               className={`text-[10px] pr-0.5 gap-1 ${
+                c.is_cogs ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30" :
                 type === "income" ? "bg-income-muted text-income border-income/20" :
                 type === "expense" ? "bg-expense-muted text-expense border-expense/20" :
                 "bg-transfer-muted text-transfer border-transfer/20"
               }`}
             >
+              {type === "expense" && (
+                <button
+                  onClick={() => toggleCogsMutation.mutate({ id: c.id, is_cogs: !c.is_cogs })}
+                  className={`hover:opacity-70 transition-opacity ${c.is_cogs ? "opacity-100" : "opacity-40"}`}
+                  title={c.is_cogs ? "Убрать из себестоимости" : "Пометить как себестоимость"}
+                >
+                  💲
+                </button>
+              )}
               {c.name}
               <ConfirmDelete
                 onConfirm={() => deleteMutation.mutate(c.id)}

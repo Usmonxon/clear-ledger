@@ -88,15 +88,40 @@ function buildReportSheet(
   };
 
   addSection("ДОХОДЫ", groups.income);
-  addSection("РАСХОДЫ", groups.expense);
 
-  // Profit row
+  // COGS section + Gross Profit (only for OPU with COGS)
+  const hasCogs = groups.cogs && Object.keys(groups.cogs).length > 0;
+  if (hasCogs) {
+    addSection("СЕБЕСТОИМОСТЬ", groups.cogs);
+    // Gross profit row
+    const gpRow: (string | number)[] = ["ВАЛОВАЯ ПРИБЫЛЬ"];
+    let gpYear = 0;
+    months.forEach((mk) => {
+      let inc = 0, cogs = 0;
+      Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
+      Object.values(groups.cogs).forEach((c) => { cogs += c[mk] || 0; });
+      gpYear += inc - cogs;
+    });
+    gpRow.push(gpYear);
+    months.forEach((mk) => {
+      let inc = 0, cogs = 0;
+      Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
+      Object.values(groups.cogs).forEach((c) => { cogs += c[mk] || 0; });
+      gpRow.push(inc - cogs);
+    });
+    ws.addRow(gpRow);
+  }
+
+  addSection(hasCogs ? "ОПЕРАЦИОННЫЕ РАСХОДЫ" : "РАСХОДЫ", groups.expense);
+
+  // Net profit row (income - all expenses including COGS)
   const profitRow: (string | number)[] = [label === "ДДС" ? "ПРИБЫЛЬ (по кассе)" : "ЧИСТАЯ ПРИБЫЛЬ"];
   let profitYear = 0;
   months.forEach((mk) => {
     let inc = 0, exp = 0;
     Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
     Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
+    if (groups.cogs) Object.values(groups.cogs).forEach((c) => { exp += c[mk] || 0; });
     profitYear += inc - exp;
   });
   profitRow.push(profitYear);
@@ -104,6 +129,7 @@ function buildReportSheet(
     let inc = 0, exp = 0;
     Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
     Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
+    if (groups.cogs) Object.values(groups.cogs).forEach((c) => { exp += c[mk] || 0; });
     profitRow.push(inc - exp);
   });
   ws.addRow(profitRow);
