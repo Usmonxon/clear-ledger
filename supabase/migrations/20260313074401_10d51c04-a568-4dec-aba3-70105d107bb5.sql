@@ -1,0 +1,1 @@
+ALTER TABLE public.categories ADD COLUMN is_cogs boolean NOT NULL DEFAULT false;

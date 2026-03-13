@@ -17,7 +17,8 @@ function buildReportSheet(
   transactions: Transaction[],
   monthField: "transaction_date" | "reporting_month",
   label: string,
-  includeTransfers: boolean
+  includeTransfers: boolean,
+  cogsNames?: Set<string>
 ) {
   const filtered = includeTransfers
     ? transactions
@@ -40,11 +41,16 @@ function buildReportSheet(
   // Group by type+category → month → sum
   const groups: Record<string, Record<string, Record<string, number>>> = { income: {}, expense: {} };
   if (includeTransfers) groups.transfer = {};
+  if (cogsNames && cogsNames.size > 0) groups.cogs = {};
 
   filtered.forEach((t) => {
     const mk = monthField === "transaction_date" ? t.transaction_date?.substring(0, 7) : t.reporting_month;
     if (!mk) return;
-    const g = groups[t.type];
+    let groupKey = t.type;
+    if (cogsNames && t.type === "expense" && cogsNames.has(t.cashflow_category)) {
+      groupKey = "cogs";
+    }
+    const g = groups[groupKey];
     if (!g) return;
     const cat = t.cashflow_category;
     if (!g[cat]) g[cat] = {};
@@ -82,15 +88,40 @@ function buildReportSheet(
   };
 
   addSection("ДОХОДЫ", groups.income);
-  addSection("РАСХОДЫ", groups.expense);
 
-  // Profit row
+  // COGS section + Gross Profit (only for OPU with COGS)
+  const hasCogs = groups.cogs && Object.keys(groups.cogs).length > 0;
+  if (hasCogs) {
+    addSection("СЕБЕСТОИМОСТЬ", groups.cogs);
+    // Gross profit row
+    const gpRow: (string | number)[] = ["ВАЛОВАЯ ПРИБЫЛЬ"];
+    let gpYear = 0;
+    months.forEach((mk) => {
+      let inc = 0, cogs = 0;
+      Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
+      Object.values(groups.cogs).forEach((c) => { cogs += c[mk] || 0; });
+      gpYear += inc - cogs;
+    });
+    gpRow.push(gpYear);
+    months.forEach((mk) => {
+      let inc = 0, cogs = 0;
+      Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
+      Object.values(groups.cogs).forEach((c) => { cogs += c[mk] || 0; });
+      gpRow.push(inc - cogs);
+    });
+    ws.addRow(gpRow);
+  }
+
+  addSection(hasCogs ? "ОПЕРАЦИОННЫЕ РАСХОДЫ" : "РАСХОДЫ", groups.expense);
+
+  // Net profit row (income - all expenses including COGS)
   const profitRow: (string | number)[] = [label === "ДДС" ? "ПРИБЫЛЬ (по кассе)" : "ЧИСТАЯ ПРИБЫЛЬ"];
   let profitYear = 0;
   months.forEach((mk) => {
     let inc = 0, exp = 0;
     Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
     Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
+    if (groups.cogs) Object.values(groups.cogs).forEach((c) => { exp += c[mk] || 0; });
     profitYear += inc - exp;
   });
   profitRow.push(profitYear);
@@ -98,6 +129,7 @@ function buildReportSheet(
     let inc = 0, exp = 0;
     Object.values(groups.income).forEach((c) => { inc += c[mk] || 0; });
     Object.values(groups.expense).forEach((c) => { exp += c[mk] || 0; });
+    if (groups.cogs) Object.values(groups.cogs).forEach((c) => { exp += c[mk] || 0; });
     profitRow.push(inc - exp);
   });
   ws.addRow(profitRow);
@@ -116,6 +148,15 @@ export async function exportToExcel() {
     .select("transaction_date, reporting_month, type, cashflow_category, pnl_category, wallet_account, from_account, to_account, amount, currency, target_amount, target_currency, description")
     .order("transaction_date", { ascending: false });
 
+  // Fetch COGS category names for OPU export
+  const { data: catData } = await supabase
+    .from("categories")
+    .select("name, type, is_cogs");
+  const cogsNames = new Set<string>();
+  (catData || []).forEach((c: any) => {
+    if (c.type === "expense" && c.is_cogs) cogsNames.add(c.name);
+  });
+
   if (transactions?.length) {
     const ws = wb.addWorksheet("Операции");
     const cols = Object.keys(transactions[0]);
@@ -123,7 +164,7 @@ export async function exportToExcel() {
     transactions.forEach((t) => ws.addRow(cols.map((c) => (t as any)[c])));
 
     buildReportSheet(wb, "ДДС", transactions as Transaction[], "transaction_date", "ДДС", true);
-    buildReportSheet(wb, "ОПУ", transactions as Transaction[], "reporting_month", "ОПУ", false);
+    buildReportSheet(wb, "ОПУ", transactions as Transaction[], "reporting_month", "ОПУ", false, cogsNames);
   }
 
   // Accounts

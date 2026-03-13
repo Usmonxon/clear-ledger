@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useExchangeRates } from "@/hooks/useExchangeRates";
+import { useCategories } from "@/hooks/useCategories";
 import { formatAmountShort, type Transaction } from "@/data/mockData";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileReportTabs } from "@/components/MobileReportTabs";
@@ -26,14 +27,105 @@ function monthLabel(key: string) {
 
 type CurrencyMode = "UZS" | "USD" | "RUB" | "ALL_UZS" | "ALL_USD" | "ALL_RUB";
 
+type CategoryMap = Map<string, Map<string, number>>;
+type TotalsMap = Map<string, number>;
+
+function ReportRow({ label, totals, monthKeys, className, cellClass }: {
+  label: string; totals: TotalsMap; monthKeys: string[]; className?: string; cellClass?: string;
+}) {
+  let yearTotal = 0;
+  totals.forEach((v) => (yearTotal += v));
+  return (
+    <tr className={className}>
+      <td className={`px-3 py-1.5 font-bold text-sm sticky left-0 z-10 ${className}`}>{label}</td>
+      <td className={`matrix-cell font-bold ${cellClass}`}>{formatAmountShort(yearTotal)}</td>
+      {monthKeys.map((mk) => (
+        <td key={mk} className={`matrix-cell font-bold ${cellClass}`}>{formatAmountShort(totals.get(mk) || 0)}</td>
+      ))}
+    </tr>
+  );
+}
+
+function CategoryRows({ categories, monthKeys }: { categories: CategoryMap; monthKeys: string[] }) {
+  return (
+    <>
+      {Array.from(categories.entries()).map(([cat, catMap]) => {
+        let yt = 0;
+        catMap.forEach((v) => (yt += v));
+        return (
+          <tr key={cat} className="hover:bg-muted/30">
+            <td className="matrix-subcategory sticky left-0 bg-card z-10">{cat}</td>
+            <td className="matrix-cell text-muted-foreground">{formatAmountShort(yt)}</td>
+            {monthKeys.map((mk) => (
+              <td key={mk} className="matrix-cell">{formatAmountShort(catMap.get(mk) || 0)}</td>
+            ))}
+          </tr>
+        );
+      })}
+    </>
+  );
+}
+
+function ProfitRow({ label, incomeTotals, expenseTotals, monthKeys, className }: {
+  label: string; incomeTotals: TotalsMap; expenseTotals: TotalsMap; monthKeys: string[]; className?: string;
+}) {
+  let yearProfit = 0;
+  const monthProfits = monthKeys.map((mk) => {
+    const p = (incomeTotals.get(mk) || 0) - (expenseTotals.get(mk) || 0);
+    yearProfit += p;
+    return p;
+  });
+  return (
+    <tr className={`bg-accent border-t-2 border-border ${className}`}>
+      <td className="px-3 py-1.5 font-bold text-sm sticky left-0 bg-accent z-10">{label}</td>
+      <td className={`matrix-cell font-bold ${yearProfit >= 0 ? "text-income" : "text-expense"}`}>
+        {formatAmountShort(yearProfit)}
+      </td>
+      {monthProfits.map((p, i) => (
+        <td key={monthKeys[i]} className={`matrix-cell font-bold ${p >= 0 ? "text-income" : "text-expense"}`}>
+          {formatAmountShort(p)}
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function ProfitabilityRow({ incomeTotals, expenseTotals, monthKeys }: {
+  incomeTotals: TotalsMap; expenseTotals: TotalsMap; monthKeys: string[];
+}) {
+  let totalInc = 0, totalExp = 0;
+  incomeTotals.forEach((v) => (totalInc += v));
+  expenseTotals.forEach((v) => (totalExp += v));
+  const profitability = totalInc > 0 ? (((totalInc - totalExp) / totalInc) * 100).toFixed(1) : "0.0";
+  return (
+    <tr className="bg-muted/50">
+      <td className="px-3 py-1.5 font-semibold text-xs text-muted-foreground sticky left-0 bg-muted/50 z-10">РЕНТАБЕЛЬНОСТЬ</td>
+      <td className="matrix-cell font-semibold text-xs">{profitability}%</td>
+      {monthKeys.map((mk) => {
+        const inc = incomeTotals.get(mk) || 0;
+        const exp = expenseTotals.get(mk) || 0;
+        const p = inc > 0 ? (((inc - exp) / inc) * 100).toFixed(1) : "0.0";
+        return <td key={mk} className="matrix-cell text-xs text-muted-foreground">{p}%</td>;
+      })}
+    </tr>
+  );
+}
+
 export default function PnLReport() {
   const { user } = useAuth();
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
   const { convert, isLoading: ratesLoading } = useExchangeRates();
+  const { categories: categoryList } = useCategories();
   const isMobile = useIsMobile();
 
   const isUnified = currencyMode.startsWith("ALL_");
   const baseCurrency = isUnified ? currencyMode.replace("ALL_", "") : currencyMode;
+
+  const cogsNames = useMemo(() => {
+    const set = new Set<string>();
+    categoryList.filter((c) => c.type === "expense" && c.is_cogs).forEach((c) => set.add(c.name));
+    return set;
+  }, [categoryList]);
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["transactions", user?.id],
@@ -55,8 +147,9 @@ export default function PnLReport() {
       : transactions.filter((t) => t.currency === baseCurrency && t.type !== "transfer" && t.type !== "dividend");
     const monthKeys = buildMonthColumns(filtered);
 
-    const incomeCategories = new Map<string, Map<string, number>>();
-    const expenseCategories = new Map<string, Map<string, number>>();
+    const incomeCategories: CategoryMap = new Map();
+    const cogsCategories: CategoryMap = new Map();
+    const opexCategories: CategoryMap = new Map();
 
     filtered.forEach((t) => {
       if (!t.reporting_month) return;
@@ -70,34 +163,54 @@ export default function PnLReport() {
         if (!result.found) missing.add(`${monthKey}: ${t.currency}→${baseCurrency}`);
       }
 
-      const target = t.type === "income" ? incomeCategories : expenseCategories;
+      let target: CategoryMap;
+      if (t.type === "income") {
+        target = incomeCategories;
+      } else {
+        // expense — split into COGS vs operating
+        target = cogsNames.has(t.cashflow_category) ? cogsCategories : opexCategories;
+      }
       const cat = t.cashflow_category;
       if (!target.has(cat)) target.set(cat, new Map());
       const catMap = target.get(cat)!;
       catMap.set(monthKey, (catMap.get(monthKey) || 0) + amt);
     });
 
-    const incomeTotals = new Map<string, number>();
-    const expenseTotals = new Map<string, number>();
-    monthKeys.forEach((mk) => {
-      let incSum = 0;
-      incomeCategories.forEach((catMap) => { incSum += catMap.get(mk) || 0; });
-      incomeTotals.set(mk, incSum);
-      let expSum = 0;
-      expenseCategories.forEach((catMap) => { expSum += catMap.get(mk) || 0; });
-      expenseTotals.set(mk, expSum);
-    });
+    const sumTotals = (cats: CategoryMap): TotalsMap => {
+      const totals: TotalsMap = new Map();
+      monthKeys.forEach((mk) => {
+        let sum = 0;
+        cats.forEach((catMap) => { sum += catMap.get(mk) || 0; });
+        totals.set(mk, sum);
+      });
+      return totals;
+    };
 
-    return { monthKeys, data: { incomeCategories, expenseCategories, incomeTotals, expenseTotals }, missingRates: missing };
-  }, [transactions, currencyMode, baseCurrency, isUnified, convert]);
+    return {
+      monthKeys,
+      data: {
+        incomeCategories,
+        cogsCategories,
+        opexCategories,
+        incomeTotals: sumTotals(incomeCategories),
+        cogsTotals: sumTotals(cogsCategories),
+        opexTotals: sumTotals(opexCategories),
+        allExpenseTotals: (() => {
+          const t: TotalsMap = new Map();
+          monthKeys.forEach((mk) => {
+            let s = 0;
+            cogsCategories.forEach((c) => { s += c.get(mk) || 0; });
+            opexCategories.forEach((c) => { s += c.get(mk) || 0; });
+            t.set(mk, s);
+          });
+          return t;
+        })(),
+      },
+      missingRates: missing,
+    };
+  }, [transactions, currencyMode, baseCurrency, isUnified, convert, cogsNames]);
 
-  const yearTotal = (map: Map<string, number>) => { let s = 0; map.forEach((v) => (s += v)); return s; };
-  const catYearTotal = (catMap: Map<string, number>) => { let s = 0; catMap.forEach((v) => (s += v)); return s; };
-
-  const totalIncome = yearTotal(data.incomeTotals);
-  const totalExpense = yearTotal(data.expenseTotals);
-  const netProfit = totalIncome - totalExpense;
-  const profitability = totalIncome > 0 ? (((netProfit / totalIncome) * 100).toFixed(1)) : "0.0";
+  const hasCogs = data.cogsCategories.size > 0;
 
   if (isLoading || ratesLoading) {
     return (
@@ -157,68 +270,27 @@ export default function PnLReport() {
             </thead>
             <tbody>
               {/* INCOME */}
-              <tr className="bg-income-muted">
-                <td className="px-3 py-1.5 font-bold text-sm text-income sticky left-0 bg-income-muted z-10">ДОХОДЫ</td>
-                <td className="matrix-cell font-bold text-income">{formatAmountShort(totalIncome)}</td>
-                {monthKeys.map((mk) => (
-                  <td key={mk} className="matrix-cell font-bold text-income">{formatAmountShort(data.incomeTotals.get(mk) || 0)}</td>
-                ))}
-              </tr>
-              {Array.from(data.incomeCategories.entries()).map(([cat, catMap]) => (
-                <tr key={cat} className="hover:bg-muted/30">
-                  <td className="matrix-subcategory sticky left-0 bg-card z-10">{cat}</td>
-                  <td className="matrix-cell text-muted-foreground">{formatAmountShort(catYearTotal(catMap))}</td>
-                  {monthKeys.map((mk) => (
-                    <td key={mk} className="matrix-cell">{formatAmountShort(catMap.get(mk) || 0)}</td>
-                  ))}
-                </tr>
-              ))}
+              <ReportRow label="ДОХОДЫ" totals={data.incomeTotals} monthKeys={monthKeys} className="bg-income-muted" cellClass="text-income" />
+              <CategoryRows categories={data.incomeCategories} monthKeys={monthKeys} />
 
-              {/* EXPENSE */}
-              <tr className="bg-expense-muted">
-                <td className="px-3 py-1.5 font-bold text-sm text-expense sticky left-0 bg-expense-muted z-10">РАСХОДЫ</td>
-                <td className="matrix-cell font-bold text-expense">{formatAmountShort(totalExpense)}</td>
-                {monthKeys.map((mk) => (
-                  <td key={mk} className="matrix-cell font-bold text-expense">{formatAmountShort(data.expenseTotals.get(mk) || 0)}</td>
-                ))}
-              </tr>
-              {Array.from(data.expenseCategories.entries()).map(([cat, catMap]) => (
-                <tr key={cat} className="hover:bg-muted/30">
-                  <td className="matrix-subcategory sticky left-0 bg-card z-10">{cat}</td>
-                  <td className="matrix-cell text-muted-foreground">{formatAmountShort(catYearTotal(catMap))}</td>
-                  {monthKeys.map((mk) => (
-                    <td key={mk} className="matrix-cell">{formatAmountShort(catMap.get(mk) || 0)}</td>
-                  ))}
-                </tr>
-              ))}
+              {/* COGS (if any categories marked) */}
+              {hasCogs && (
+                <>
+                  <ReportRow label="СЕБЕСТОИМОСТЬ" totals={data.cogsTotals} monthKeys={monthKeys} className="bg-amber-500/10" cellClass="text-amber-700 dark:text-amber-400" />
+                  <CategoryRows categories={data.cogsCategories} monthKeys={monthKeys} />
+                  <ProfitRow label="ВАЛОВАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.cogsTotals} monthKeys={monthKeys} />
+                </>
+              )}
+
+              {/* OPERATING EXPENSES */}
+              <ReportRow label={hasCogs ? "ОПЕРАЦИОННЫЕ РАСХОДЫ" : "РАСХОДЫ"} totals={data.opexTotals} monthKeys={monthKeys} className="bg-expense-muted" cellClass="text-expense" />
+              <CategoryRows categories={data.opexCategories} monthKeys={monthKeys} />
 
               {/* NET PROFIT */}
-              <tr className="bg-accent border-t-2 border-border">
-                <td className="px-3 py-1.5 font-bold text-sm sticky left-0 bg-accent z-10">ЧИСТАЯ ПРИБЫЛЬ</td>
-                <td className={`matrix-cell font-bold ${netProfit >= 0 ? "text-income" : "text-expense"}`}>
-                  {formatAmountShort(netProfit)}
-                </td>
-                {monthKeys.map((mk) => {
-                  const profit = (data.incomeTotals.get(mk) || 0) - (data.expenseTotals.get(mk) || 0);
-                  return (
-                    <td key={mk} className={`matrix-cell font-bold ${profit >= 0 ? "text-income" : "text-expense"}`}>
-                      {formatAmountShort(profit)}
-                    </td>
-                  );
-                })}
-              </tr>
+              <ProfitRow label="ЧИСТАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.allExpenseTotals} monthKeys={monthKeys} />
 
               {/* PROFITABILITY */}
-              <tr className="bg-muted/50">
-                <td className="px-3 py-1.5 font-semibold text-xs text-muted-foreground sticky left-0 bg-muted/50 z-10">РЕНТАБЕЛЬНОСТЬ</td>
-                <td className="matrix-cell font-semibold text-xs">{profitability}%</td>
-                {monthKeys.map((mk) => {
-                  const inc = data.incomeTotals.get(mk) || 0;
-                  const exp = data.expenseTotals.get(mk) || 0;
-                  const p = inc > 0 ? (((inc - exp) / inc) * 100).toFixed(1) : "0.0";
-                  return <td key={mk} className="matrix-cell text-xs text-muted-foreground">{p}%</td>;
-                })}
-              </tr>
+              <ProfitabilityRow incomeTotals={data.incomeTotals} expenseTotals={data.allExpenseTotals} monthKeys={monthKeys} />
             </tbody>
           </table>
         </div>
@@ -227,7 +299,7 @@ export default function PnLReport() {
       {monthKeys.length > 0 && (
         <PnLSankeyChart
           incomeCategories={data.incomeCategories}
-          expenseCategories={data.expenseCategories}
+          expenseCategories={new Map([...data.cogsCategories, ...data.opexCategories])}
           baseCurrency={baseCurrency}
           monthKeys={monthKeys}
         />

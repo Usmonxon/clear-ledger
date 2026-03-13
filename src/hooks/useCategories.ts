@@ -9,6 +9,7 @@ export type Category = {
   user_id: string;
   name: string;
   type: "income" | "expense" | "transfer" | "dividend";
+  is_cogs: boolean;
   created_at: string;
 };
 
@@ -55,6 +56,18 @@ export function useCategories() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
+  const toggleCogsMutation = useMutation({
+    mutationFn: async ({ id, is_cogs }: { id: string; is_cogs: boolean }) => {
+      const { error } = await supabase.from("categories").update({ is_cogs } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast({ title: "Себестоимость обновлена" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
   // Seed defaults if none exist
   const seedDefaults = async () => {
     if (!user || categories.length > 0) return;
@@ -71,5 +84,5 @@ export function useCategories() {
   const getCategoryNames = (type: "income" | "expense" | "transfer" | "dividend") =>
     categories.filter((c) => c.type === type).map((c) => c.name);
 
-  return { categories, isLoading, addMutation, deleteMutation, seedDefaults, getCategoryNames };
+  return { categories, isLoading, addMutation, deleteMutation, toggleCogsMutation, seedDefaults, getCategoryNames };
 }
