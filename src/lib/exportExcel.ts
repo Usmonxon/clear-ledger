@@ -41,11 +41,16 @@ function buildReportSheet(
   // Group by type+category → month → sum
   const groups: Record<string, Record<string, Record<string, number>>> = { income: {}, expense: {} };
   if (includeTransfers) groups.transfer = {};
+  if (cogsNames && cogsNames.size > 0) groups.cogs = {};
 
   filtered.forEach((t) => {
     const mk = monthField === "transaction_date" ? t.transaction_date?.substring(0, 7) : t.reporting_month;
     if (!mk) return;
-    const g = groups[t.type];
+    let groupKey = t.type;
+    if (cogsNames && t.type === "expense" && cogsNames.has(t.cashflow_category)) {
+      groupKey = "cogs";
+    }
+    const g = groups[groupKey];
     if (!g) return;
     const cat = t.cashflow_category;
     if (!g[cat]) g[cat] = {};
