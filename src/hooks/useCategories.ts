@@ -56,6 +56,18 @@ export function useCategories() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
+  const toggleCogsMutation = useMutation({
+    mutationFn: async ({ id, is_cogs }: { id: string; is_cogs: boolean }) => {
+      const { error } = await supabase.from("categories").update({ is_cogs } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast({ title: "Себестоимость обновлена" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
   // Seed defaults if none exist
   const seedDefaults = async () => {
     if (!user || categories.length > 0) return;
