@@ -268,11 +268,11 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма списания ({fromAccountCurrency})</Label>
-                <Input type="number" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма зачисления ({toAccountCurrency})</Label>
-                <Input type="number" placeholder="0" value={targetAmount} onChange={(e) => setTargetAmount(e.target.value)} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(targetAmount)} onChange={(e) => setTargetAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
               </div>
             </div>
           ) : (
