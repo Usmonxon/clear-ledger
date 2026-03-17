@@ -159,11 +159,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
           {/* Amount display */}
           <div className="text-center py-4">
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
               placeholder="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={formatWithSeparators(amount)}
+              onChange={(e) => setAmount(stripNonNumeric(e.target.value))}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
                 typeColor[type]
