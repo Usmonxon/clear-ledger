@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2, Paperclip, X, ImageIcon } from "lucide-react";
+import { CalendarIcon, Trash2, Paperclip, X, ImageIcon, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatWithSeparators, stripNonNumeric } from "@/lib/formatNumber";
+import { parseAttachmentUrls, serializeAttachmentUrls, isImageUrl } from "@/lib/attachments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -78,7 +79,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   const [toAccount, setToAccount] = useState(initial?.to_account ?? "");
   const [category, setCategory] = useState(initial?.cashflow_category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(initial?.attachment_url ?? null);
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>(parseAttachmentUrls(initial?.attachment_url));
   const [uploading, setUploading] = useState(false);
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount ? String(initial.target_amount) : "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,20 +96,19 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       setToAccount(initial.to_account ?? "");
       setCategory(initial.cashflow_category);
       setDescription(initial.description ?? "");
-      setAttachmentUrl(initial.attachment_url ?? null);
+      setAttachmentUrls(parseAttachmentUrls(initial.attachment_url));
       setTargetAmount(initial.target_amount ? String(initial.target_amount) : "");
     } else {
       setAmount(""); setCurrency("UZS"); setType("expense");
       setDate(new Date()); setReportingMonth(format(new Date(), "yyyy-MM"));
       setWallet(""); setFromAccount(""); setToAccount("");
-      setCategory(""); setDescription(""); setAttachmentUrl(null);
+      setCategory(""); setDescription(""); setAttachmentUrls([]);
       setTargetAmount("");
     }
   };
 
   const categoryOptions = getCategoryNames(type);
 
-  // Detect cross-currency transfer
   const fromAccountCurrency = useMemo(() => {
     if (type !== "transfer" || !fromAccount) return null;
     return accounts.find((a) => a.name === fromAccount)?.currency ?? null;
@@ -122,22 +122,31 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
   const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("attachments").upload(path, file);
-      if (error) throw error;
-      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      setAttachmentUrl(data.publicUrl);
-      toast({ title: "Файл загружен" });
+      const newUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+        const { error } = await supabase.storage.from("attachments").upload(path, file);
+        if (error) throw error;
+        const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+        newUrls.push(data.publicUrl);
+      }
+      setAttachmentUrls((prev) => [...prev, ...newUrls]);
+      toast({ title: `${newUrls.length > 1 ? "Файлы загружены" : "Файл загружен"}` });
     } catch (e: unknown) {
       toast({ title: "Ошибка загрузки", description: (e as Error).message, variant: "destructive" });
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachmentUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
@@ -165,12 +174,12 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       type,
       from_account: type === "transfer" ? fromAccount : null,
       to_account: type === "transfer" ? toAccount : null,
-      attachment_url: attachmentUrl,
+      attachment_url: serializeAttachmentUrls(attachmentUrls),
       target_currency: isCrossCurrency ? toAccountCurrency as string : null,
       target_amount: isCrossCurrency ? parseFloat(targetAmount) : null,
     });
     if (!isEdit) {
-      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrl(null); setTargetAmount("");
+      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrls([]); setTargetAmount("");
     }
   };
 
@@ -224,7 +233,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             </Select>
           </div>
 
-          {/* Account(s) - moved before amount for transfers so we can detect currencies */}
+          {/* Account(s) */}
           {type === "transfer" ? (
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -357,45 +366,55 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             />
           </div>
 
-          {/* Attachment */}
+          {/* Attachments */}
           <div>
-            <Label className="text-xs text-muted-foreground">Фото / чек</Label>
-            {attachmentUrl ? (
-              <div className="mt-1 relative rounded-md overflow-hidden border border-border">
-                {attachmentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                  <img src={attachmentUrl} alt="Чек" className="w-full max-h-48 object-contain bg-muted" />
-                ) : (
-                  <div className="flex items-center gap-2 p-3 bg-muted text-xs">
-                    <Paperclip className="h-4 w-4 text-muted-foreground" />
-                    <a href={attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-transfer underline truncate">
-                      Открыть файл
-                    </a>
+            <Label className="text-xs text-muted-foreground">Фото / чеки</Label>
+            {attachmentUrls.length > 0 && (
+              <div className="mt-1 grid grid-cols-3 gap-2">
+                {attachmentUrls.map((url, i) => (
+                  <div key={i} className="relative rounded-md overflow-hidden border border-border group">
+                    {isImageUrl(url) ? (
+                      <img src={url} alt={`Файл ${i + 1}`} className="w-full h-20 object-cover bg-muted" />
+                    ) : (
+                      <div className="flex items-center gap-1.5 p-2 bg-muted h-20">
+                        <Paperclip className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-transfer underline truncate">
+                          Файл {i + 1}
+                        </a>
+                      </div>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-0.5 right-0.5 h-5 w-5 bg-background/80 hover:bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeAttachment(i)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
                   </div>
-                )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-1 right-1 h-6 w-6 bg-background/80 hover:bg-destructive/10 text-destructive"
-                  onClick={() => setAttachmentUrl(null)}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                ))}
               </div>
-            ) : (
-              <Button
-                variant="outline"
-                className="w-full h-9 text-xs mt-1 border-dashed"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-              >
-                <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
-                {uploading ? "Загрузка..." : "Прикрепить фото или файл"}
-              </Button>
             )}
+            <Button
+              variant="outline"
+              className="w-full h-9 text-xs mt-1 border-dashed"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                "Загрузка..."
+              ) : (
+                <>
+                  {attachmentUrls.length > 0 ? <Plus className="h-3.5 w-3.5 mr-1.5" /> : <ImageIcon className="h-3.5 w-3.5 mr-1.5" />}
+                  {attachmentUrls.length > 0 ? "Добавить ещё" : "Прикрепить фото или файл"}
+                </>
+              )}
+            </Button>
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*,.pdf"
+              multiple
               className="hidden"
               onChange={handleFileUpload}
             />

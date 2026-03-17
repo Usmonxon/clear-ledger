@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Trash2, Wallet, Tag, FileText, ImageIcon, X, Paperclip } from "lucide-react";
+import { CalendarIcon, Trash2, Wallet, Tag, FileText, ImageIcon, X, Paperclip, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatWithSeparators, stripNonNumeric } from "@/lib/formatNumber";
+import { parseAttachmentUrls, serializeAttachmentUrls, isImageUrl } from "@/lib/attachments";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -62,7 +63,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   const [toAccount, setToAccount] = useState(initial?.to_account ?? "");
   const [category, setCategory] = useState(initial?.cashflow_category ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
-  const [attachmentUrl, setAttachmentUrl] = useState<string | null>(initial?.attachment_url ?? null);
+  const [attachmentUrls, setAttachmentUrls] = useState<string[]>(parseAttachmentUrls(initial?.attachment_url));
   const [uploading, setUploading] = useState(false);
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount ? String(initial.target_amount) : "");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,22 +84,31 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const files = e.target.files;
+    if (!files || files.length === 0 || !user) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("attachments").upload(path, file);
-      if (error) throw error;
-      const { data } = supabase.storage.from("attachments").getPublicUrl(path);
-      setAttachmentUrl(data.publicUrl);
-      toast({ title: "Файл загружен" });
+      const newUrls: string[] = [];
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
+        const { error } = await supabase.storage.from("attachments").upload(path, file);
+        if (error) throw error;
+        const { data } = supabase.storage.from("attachments").getPublicUrl(path);
+        newUrls.push(data.publicUrl);
+      }
+      setAttachmentUrls((prev) => [...prev, ...newUrls]);
+      toast({ title: `${newUrls.length > 1 ? "Файлы загружены" : "Файл загружен"}` });
     } catch (e: unknown) {
       toast({ title: "Ошибка загрузки", description: (e as Error).message, variant: "destructive" });
     } finally {
       setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachmentUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
@@ -124,12 +134,12 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
       type,
       from_account: type === "transfer" ? fromAccount : null,
       to_account: type === "transfer" ? toAccount : null,
-      attachment_url: attachmentUrl,
+      attachment_url: serializeAttachmentUrls(attachmentUrls),
       target_currency: isCrossCurrency ? toAccountCurrency as string : null,
       target_amount: isCrossCurrency ? parseFloat(targetAmount) : null,
     });
     if (!isEdit) {
-      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrl(null); setTargetAmount("");
+      setAmount(""); setDescription(""); setCategory(""); setAttachmentUrls([]); setTargetAmount("");
     }
   };
 
@@ -302,29 +312,60 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
               </div>
             </div>
 
-            {/* Attachment */}
-            <div className="flex items-center gap-3 px-4 py-3 bg-card">
-              <ImageIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-              <div className="flex-1">
-                {attachmentUrl ? (
-                  <div className="flex items-center gap-2">
-                    <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs text-transfer truncate flex-1">Файл прикреплён</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachmentUrl(null)}>
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="text-sm text-muted-foreground"
-                  >
-                    {uploading ? "Загрузка..." : "Прикрепить фото"}
-                  </button>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileUpload} />
+            {/* Attachments */}
+            <div className="px-4 py-3 bg-card space-y-2">
+              <div className="flex items-center gap-3">
+                <ImageIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex-1">
+                  {attachmentUrls.length === 0 ? (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="text-sm text-muted-foreground"
+                    >
+                      {uploading ? "Загрузка..." : "Прикрепить фото"}
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">{attachmentUrls.length} файл(ов)</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Ещё
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
+              {attachmentUrls.length > 0 && (
+                <div className="grid grid-cols-4 gap-1.5 ml-8">
+                  {attachmentUrls.map((url, i) => (
+                    <div key={i} className="relative rounded-md overflow-hidden border border-border group">
+                      {isImageUrl(url) ? (
+                        <img src={url} alt={`Файл ${i + 1}`} className="w-full h-14 object-cover bg-muted" />
+                      ) : (
+                        <div className="flex items-center justify-center bg-muted h-14">
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-0 right-0 h-5 w-5 bg-background/80 hover:bg-destructive/10 text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeAttachment(i)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*,.pdf" multiple className="hidden" onChange={handleFileUpload} />
             </div>
           </div>
 
