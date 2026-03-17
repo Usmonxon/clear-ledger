@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Trash2, Wallet, Tag, FileText, ImageIcon, X, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatWithSeparators, stripNonNumeric } from "@/lib/formatNumber";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -159,11 +160,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
           {/* Amount display */}
           <div className="text-center py-4">
             <Input
-              type="number"
+              type="text"
               inputMode="decimal"
               placeholder="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              value={formatWithSeparators(amount)}
+              onChange={(e) => setAmount(stripNonNumeric(e.target.value))}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
                 typeColor[type]
@@ -190,11 +191,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Сумма зачисления ({toAccountCurrency})</p>
               <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(e.target.value)}
+                 type="text"
+                 inputMode="decimal"
+                 placeholder="0"
+                 value={formatWithSeparators(targetAmount)}
+                 onChange={(e) => setTargetAmount(stripNonNumeric(e.target.value))}
                 className="text-center text-2xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0 text-transfer"
               />
             </div>
