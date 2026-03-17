@@ -190,11 +190,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Сумма зачисления ({toAccountCurrency})</p>
               <Input
-                type="number"
-                inputMode="decimal"
-                placeholder="0"
-                value={targetAmount}
-                onChange={(e) => setTargetAmount(e.target.value)}
+                 type="text"
+                 inputMode="decimal"
+                 placeholder="0"
+                 value={formatWithSeparators(targetAmount)}
+                 onChange={(e) => setTargetAmount(stripNonNumeric(e.target.value))}
                 className="text-center text-2xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0 text-transfer"
               />
             </div>

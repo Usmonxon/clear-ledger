@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Trash2, Paperclip, X, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatWithSeparators, stripNonNumeric } from "@/lib/formatNumber";
 import {
   AlertDialog,
   AlertDialogAction,
