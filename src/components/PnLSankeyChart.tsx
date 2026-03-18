@@ -192,7 +192,7 @@ function CustomLink(props: any) {
 
 export default function PnLSankeyChart({ incomeCategories, expenseCategories, baseCurrency, monthKeys }: Props) {
   const [open, setOpen] = useState(true);
-  const [period, setPeriod] = useState<PeriodOption>("all");
+  const [period, setPeriod] = useState<PeriodOption>("this_month");
   const isMobile = useIsMobile();
 
   const filteredMonths = useMemo(() => filterMonthKeys(monthKeys, period), [monthKeys, period]);
