@@ -213,6 +213,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                  placeholder="0"
                  value={formatWithSeparators(targetAmount)}
                  onChange={(e) => setTargetAmount(stripNonNumeric(e.target.value))}
+                 onFocus={scrollIntoViewOnFocus}
                 className="text-center text-2xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0 text-transfer"
               />
             </div>
@@ -313,6 +314,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onFocus={scrollIntoViewOnFocus}
                   placeholder="Описание..."
                   className="min-h-[40px] text-sm border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 resize-none"
                 />
