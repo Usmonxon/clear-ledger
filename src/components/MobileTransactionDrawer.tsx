@@ -144,7 +144,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer open={open} onOpenChange={onOpenChange} handleOnly>
       <DrawerContent className="max-h-[92vh] flex flex-col">
         <DrawerTitle className="sr-only">{isEdit ? "Редактировать операцию" : "Новая операция"}</DrawerTitle>
 
