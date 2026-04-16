@@ -1,4 +1,6 @@
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { format, parseISO } from "date-fns";
+import { ru } from "date-fns/locale";
 import { Plus, Search, Filter, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +99,31 @@ export default function Transactions() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
+  // ─── Desktop Filter ──────────────────────────────────────────────────────
+  const filtered = transactions.filter((t) => {
+    if (typeFilter !== "all" && t.type !== typeFilter) return false;
+    if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        t.description?.toLowerCase().includes(q) ||
+        t.cashflow_category.toLowerCase().includes(q) ||
+        t.wallet_account.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, TransactionFull[]>();
+    filtered.forEach((t) => {
+      const key = t.transaction_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filtered]);
+
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
@@ -126,21 +153,6 @@ export default function Transactions() {
       </>
     );
   }
-
-  // ─── Desktop Filter ──────────────────────────────────────────────────────
-  const filtered = transactions.filter((t) => {
-    if (typeFilter !== "all" && t.type !== typeFilter) return false;
-    if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        t.description?.toLowerCase().includes(q) ||
-        t.cashflow_category.toLowerCase().includes(q) ||
-        t.wallet_account.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
 
   return (
     <div className="p-4 space-y-3">
@@ -205,36 +217,45 @@ export default function Transactions() {
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Загрузка...</td>
               </tr>
-            ) : filtered.length === 0 ? (
+            ) : grouped.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-3 py-8 text-center text-xs text-muted-foreground">Операции не найдены</td>
               </tr>
             ) : (
-              filtered.map((t) => (
-                <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
-                  <td className="px-3 text-xs tabular-nums">{t.transaction_date}</td>
-                  <td className="px-3">
-                    <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
-                  </td>
-                  <td className="px-3 text-xs">
-                    {t.type === "transfer" && t.from_account && t.to_account
-                      ? <span className="text-transfer">{t.from_account} → {t.to_account}</span>
-                      : t.wallet_account
-                    }
-                  </td>
-                  <td className={`px-3 text-right text-xs tabular-nums ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
-                    {formatAmountShort(t.amount)}
-                    {t.target_amount != null && t.target_currency && (
-                      <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
-                    )}
-                  </td>
-                  <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
-                  <td className="px-3 text-xs text-muted-foreground truncate max-w-[220px]">{t.description}</td>
-                  <td className="px-3 text-center">
-                    {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
-                  </td>
-                  <td className="px-3 text-xs tabular-nums text-muted-foreground">{t.reporting_month}</td>
-                </tr>
+              grouped.map(([dateStr, txns]) => (
+                <React.Fragment key={dateStr}>
+                  <tr>
+                    <td colSpan={8} className="px-3 py-1.5 text-xs font-bold text-muted-foreground uppercase tracking-wider bg-muted/50">
+                      {format(parseISO(dateStr), "d MMMM yyyy", { locale: ru })}
+                    </td>
+                  </tr>
+                  {txns.map((t) => (
+                    <tr key={t.id} className="cursor-pointer" onClick={() => setSelected(t)}>
+                      <td className="px-3 text-xs tabular-nums"></td>
+                      <td className="px-3">
+                        <Badge variant="outline" className="text-[10px] font-normal px-1.5 py-0">{t.cashflow_category}</Badge>
+                      </td>
+                      <td className="px-3 text-xs">
+                        {t.type === "transfer" && t.from_account && t.to_account
+                          ? <span className="text-transfer">{t.from_account} → {t.to_account}</span>
+                          : t.wallet_account
+                        }
+                      </td>
+                      <td className={`px-3 text-right text-xs tabular-nums ${t.type === "income" ? "amount-income" : t.type === "expense" ? "amount-expense" : t.type === "dividend" ? "amount-dividend" : "amount-transfer"}`}>
+                        {formatAmountShort(t.amount)}
+                        {t.target_amount != null && t.target_currency && (
+                          <span className="block text-[10px] text-muted-foreground">→ {formatAmountShort(t.target_amount)} {t.target_currency}</span>
+                        )}
+                      </td>
+                      <td className="px-3 text-xs text-muted-foreground">{t.currency}</td>
+                      <td className="px-3 text-xs text-muted-foreground truncate max-w-[220px]">{t.description}</td>
+                      <td className="px-3 text-center">
+                        {t.attachment_url && <Paperclip className="h-3 w-3 text-muted-foreground mx-auto" />}
+                      </td>
+                      <td className="px-3 text-xs tabular-nums text-muted-foreground">{t.reporting_month}</td>
+                    </tr>
+                  ))}
+                </React.Fragment>
               ))
             )}
           </tbody>
