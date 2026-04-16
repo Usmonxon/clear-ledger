@@ -99,6 +99,31 @@ export default function Transactions() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
+  // ─── Desktop Filter ──────────────────────────────────────────────────────
+  const filtered = transactions.filter((t) => {
+    if (typeFilter !== "all" && t.type !== typeFilter) return false;
+    if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        t.description?.toLowerCase().includes(q) ||
+        t.cashflow_category.toLowerCase().includes(q) ||
+        t.wallet_account.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, TransactionFull[]>();
+    filtered.forEach((t) => {
+      const key = t.transaction_date;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(t);
+    });
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [filtered]);
+
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
@@ -128,31 +153,6 @@ export default function Transactions() {
       </>
     );
   }
-
-  // ─── Desktop Filter ──────────────────────────────────────────────────────
-  const filtered = transactions.filter((t) => {
-    if (typeFilter !== "all" && t.type !== typeFilter) return false;
-    if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return (
-        t.description?.toLowerCase().includes(q) ||
-        t.cashflow_category.toLowerCase().includes(q) ||
-        t.wallet_account.toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
-
-  const grouped = useMemo(() => {
-    const map = new Map<string, TransactionFull[]>();
-    filtered.forEach((t) => {
-      const key = t.transaction_date;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(t);
-    });
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [filtered]);
 
   return (
     <div className="p-4 space-y-3">
