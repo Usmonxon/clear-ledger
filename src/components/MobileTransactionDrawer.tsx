@@ -181,6 +181,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
               placeholder="0"
               value={formatWithSeparators(amount)}
               onChange={(e) => setAmount(stripNonNumeric(e.target.value))}
+              onFocus={scrollIntoViewOnFocus}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
                 typeColor[type]
