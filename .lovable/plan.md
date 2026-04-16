@@ -1,57 +1,35 @@
 
 
-# Dividends Logic
+## Plan: Group desktop transactions by date
 
-Dividends are cash withdrawals by owners that reduce cash (appear in Cashflow/DDS) but do NOT affect profit (excluded from PnL), similar to how transfers are already handled.
+### What changes
+Currently the desktop table shows a flat list with the date repeated on every row. We'll group transactions by `transaction_date` and render a date header row spanning all columns before each group — similar to how the mobile view already groups by date.
 
-## Approach
+### Implementation
 
-Add `dividend` as a new transaction type. In reports, treat it like an expense in Cashflow but exclude it from PnL (same as transfers).
+**File: `src/pages/Transactions.tsx`**
 
-## Changes
+1. Add a `useMemo` to group `filtered` transactions by `transaction_date` into an array of `[dateStr, transactions[]]` pairs (already sorted desc from the query).
 
-### 1. Database Migration
-- Add `'dividend'` to the `transaction_type` enum: `ALTER TYPE transaction_type ADD VALUE 'dividend'`
+2. Replace the flat `filtered.map(...)` in `<tbody>` with the grouped iteration:
+   - For each date group, render a separator `<tr>` with a single `<td colSpan={8}>` showing the formatted date (e.g. "13 АПРЕЛЯ 2026") in bold muted text with a subtle background.
+   - Then render the transaction rows as before, but **remove the date from individual rows** (or keep it lighter/hidden since the group header already shows it).
 
-### 2. Type Definitions (`src/data/mockData.ts`)
-- Add `"dividend"` to `TransactionType` union
+3. Use `date-fns` `format` + `parseISO` with `ru` locale (already imported in the mobile component) for the date header formatting.
 
-### 3. Categories (`src/hooks/useCategories.ts` + `src/data/mockData.ts`)
-- Add default dividend categories (e.g., "Дивиденды") to `CASHFLOW_CATEGORIES`
-- Support `"dividend"` type in `getCategoryNames`
-
-### 4. Transaction Form (`src/components/TransactionSheet.tsx` + `MobileTransactionDrawer.tsx`)
-- Add "Дивиденды" as a 4th type option in the type selector
-- Dividend form behaves like expense: account selector, amount, currency, date, category, description
-- No "Месяц ОПУ" needed (or auto-filled but irrelevant since PnL ignores it)
-
-### 5. Cashflow Report (`src/pages/CashflowReport.tsx`)
-- Show dividends as a separate section row (like transfers), or group under expenses -- separate "ДИВИДЕНДЫ" section below profit makes more sense
-- Dividends reduce net cash flow but appear after the profit line
-
-### 6. PnL Report (`src/pages/PnLReport.tsx`)
-- Already filters `t.type !== "transfer"` -- add `&& t.type !== "dividend"` to exclude dividends from PnL
-
-### 7. Transaction List & Mobile List
-- Show dividend transactions with a distinct color (e.g., orange/purple)
-- Display in lists like any other transaction
-
-### 8. Account Balances (`src/hooks/useAccounts.ts`)
-- Dividends reduce the account balance (treat as outflow, like expense)
-
-## Report Layout (Cashflow)
-
+### Visual result
 ```text
-ДОХОДЫ          ...
-  CRM           ...
-  ...
-РАСХОДЫ         ...
-  oylik         ...
-  ...
-ПРИБЫЛЬ (по кассе)  Income - Expense
-ДИВИДЕНДЫ       ...        ← new section
-ПЕРЕВОДЫ        ...
+┌──────────────────────────────────────────────────┐
+│  13 АПРЕЛЯ 2026                                  │  ← date header row
+├──────┬──────────┬────────┬─────────┬─────────────┤
+│      │ amoCRM   │ Humo   │ 1 365k  │ comment...  │
+│      │ МоиЗвонки│ Humo   │   222k  │ comment...  │
+├──────────────────────────────────────────────────┤
+│  12 АПРЕЛЯ 2026                                  │  ← next date
+├──────┬──────────┬────────┬─────────┬─────────────┤
+│      │ Аренда   │ Humo   │   900k  │ comment...  │
+└──────┴──────────┴────────┴─────────┴─────────────┘
 ```
 
-Profit line stays as Income minus Expense. Dividends shown separately below, not affecting profit calculation.
+The Date column stays in the header but individual rows won't repeat it (keeping the column for alignment consistency, just leaving cells empty or showing a short time if available later).
 
