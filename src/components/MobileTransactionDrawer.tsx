@@ -144,8 +144,8 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   };
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[92vh] flex flex-col">
+    <Drawer open={open} onOpenChange={onOpenChange} dismissible={false}>
+      <DrawerContent className="max-h-[92vh] flex flex-col" onPointerDownOutside={(e) => { onOpenChange(false); }}>
         <DrawerTitle className="sr-only">{isEdit ? "Редактировать операцию" : "Новая операция"}</DrawerTitle>
 
         <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-5">
