@@ -68,6 +68,12 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount ? String(initial.target_amount) : "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const scrollIntoViewOnFocus = useCallback((e: React.FocusEvent<HTMLElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  }, []);
+
   const categoryOptions = getCategoryNames(type);
   const defaultWallet = accountNames[0] ?? "";
 
