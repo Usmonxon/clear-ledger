@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { format } from "date-fns";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,12 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
   const [uploading, setUploading] = useState(false);
   const [targetAmount, setTargetAmount] = useState(initial?.target_amount ? String(initial.target_amount) : "");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const scrollIntoViewOnFocus = useCallback((e: React.FocusEvent<HTMLElement>) => {
+    setTimeout(() => {
+      e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 300);
+  }, []);
 
   const categoryOptions = getCategoryNames(type);
   const defaultWallet = accountNames[0] ?? "";
@@ -175,6 +181,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
               placeholder="0"
               value={formatWithSeparators(amount)}
               onChange={(e) => setAmount(stripNonNumeric(e.target.value))}
+              onFocus={scrollIntoViewOnFocus}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
                 typeColor[type]
@@ -206,6 +213,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                  placeholder="0"
                  value={formatWithSeparators(targetAmount)}
                  onChange={(e) => setTargetAmount(stripNonNumeric(e.target.value))}
+                 onFocus={scrollIntoViewOnFocus}
                 className="text-center text-2xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0 text-transfer"
               />
             </div>
@@ -306,6 +314,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  onFocus={scrollIntoViewOnFocus}
                   placeholder="Описание..."
                   className="min-h-[40px] text-sm border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 resize-none"
                 />
