@@ -311,24 +311,24 @@ export default function PnLReport() {
             </thead>
             <tbody>
               {/* INCOME */}
-              <ReportRow label="ДОХОДЫ" totals={data.incomeTotals} monthKeys={monthKeys} className="bg-income-muted" cellClass="text-income" />
-              <CategoryRows categories={data.incomeCategories} monthKeys={monthKeys} />
+              <ReportRow label="ДОХОДЫ" totals={data.incomeTotals} monthKeys={monthKeys} className="bg-income-muted" cellClass="text-income" bucket="income" onCellClick={handleCellClick} />
+              <CategoryRows categories={data.incomeCategories} monthKeys={monthKeys} bucket="income" onCellClick={handleCellClick} />
 
               {/* COGS (if any categories marked) */}
               {hasCogs && (
                 <>
-                  <ReportRow label="СЕБЕСТОИМОСТЬ" totals={data.cogsTotals} monthKeys={monthKeys} className="bg-amber-500/10" cellClass="text-amber-700 dark:text-amber-400" />
-                  <CategoryRows categories={data.cogsCategories} monthKeys={monthKeys} />
-                  <ProfitRow label="ВАЛОВАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.cogsTotals} monthKeys={monthKeys} />
+                  <ReportRow label="СЕБЕСТОИМОСТЬ" totals={data.cogsTotals} monthKeys={monthKeys} className="bg-amber-500/10" cellClass="text-amber-700 dark:text-amber-400" bucket="cogs" onCellClick={handleCellClick} />
+                  <CategoryRows categories={data.cogsCategories} monthKeys={monthKeys} bucket="cogs" onCellClick={handleCellClick} />
+                  <ProfitRow label="ВАЛОВАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.cogsTotals} monthKeys={monthKeys} onCellClick={handleCellClick} />
                 </>
               )}
 
               {/* OPERATING EXPENSES */}
-              <ReportRow label={hasCogs ? "ОПЕРАЦИОННЫЕ РАСХОДЫ" : "РАСХОДЫ"} totals={data.opexTotals} monthKeys={monthKeys} className="bg-expense-muted" cellClass="text-expense" />
-              <CategoryRows categories={data.opexCategories} monthKeys={monthKeys} />
+              <ReportRow label={hasCogs ? "ОПЕРАЦИОННЫЕ РАСХОДЫ" : "РАСХОДЫ"} totals={data.opexTotals} monthKeys={monthKeys} className="bg-expense-muted" cellClass="text-expense" bucket="opex" onCellClick={handleCellClick} />
+              <CategoryRows categories={data.opexCategories} monthKeys={monthKeys} bucket="opex" onCellClick={handleCellClick} />
 
               {/* NET PROFIT */}
-              <ProfitRow label="ЧИСТАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.allExpenseTotals} monthKeys={monthKeys} />
+              <ProfitRow label="ЧИСТАЯ ПРИБЫЛЬ" incomeTotals={data.incomeTotals} expenseTotals={data.allExpenseTotals} monthKeys={monthKeys} onCellClick={handleCellClick} />
 
               {/* PROFITABILITY */}
               <ProfitabilityRow incomeTotals={data.incomeTotals} expenseTotals={data.allExpenseTotals} monthKeys={monthKeys} />
