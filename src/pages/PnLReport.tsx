@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import PnLSankeyChart from "@/components/PnLSankeyChart";
@@ -10,6 +11,22 @@ import { useCategories } from "@/hooks/useCategories";
 import { formatAmountShort, type Transaction } from "@/data/mockData";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileReportTabs } from "@/components/MobileReportTabs";
+
+type Bucket = "income" | "cogs" | "opex" | "all";
+type CellClickFn = (opts: { category?: string; monthKey?: string; bucket: Bucket }) => void;
+
+function Amount({ value, onClick, className }: { value: number; onClick?: () => void; className?: string }) {
+  if (!onClick) return <>{formatAmountShort(value)}</>;
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className={`hover:underline hover:text-primary cursor-pointer ${className || ""}`}
+    >
+      {formatAmountShort(value)}
+    </button>
+  );
+}
 
 function buildMonthColumns(transactions: Transaction[]): string[] {
   const set = new Set<string>();
@@ -30,23 +47,30 @@ type CurrencyMode = "UZS" | "USD" | "RUB" | "ALL_UZS" | "ALL_USD" | "ALL_RUB";
 type CategoryMap = Map<string, Map<string, number>>;
 type TotalsMap = Map<string, number>;
 
-function ReportRow({ label, totals, monthKeys, className, cellClass }: {
+function ReportRow({ label, totals, monthKeys, className, cellClass, bucket, onCellClick }: {
   label: string; totals: TotalsMap; monthKeys: string[]; className?: string; cellClass?: string;
+  bucket: Bucket; onCellClick?: CellClickFn;
 }) {
   let yearTotal = 0;
   totals.forEach((v) => (yearTotal += v));
   return (
     <tr className={className}>
       <td className={`px-3 py-1.5 font-bold text-sm sticky left-0 z-10 ${className}`}>{label}</td>
-      <td className={`matrix-cell font-bold ${cellClass}`}>{formatAmountShort(yearTotal)}</td>
+      <td className={`matrix-cell font-bold ${cellClass}`}>
+        <Amount value={yearTotal} onClick={onCellClick ? () => onCellClick({ bucket }) : undefined} />
+      </td>
       {monthKeys.map((mk) => (
-        <td key={mk} className={`matrix-cell font-bold ${cellClass}`}>{formatAmountShort(totals.get(mk) || 0)}</td>
+        <td key={mk} className={`matrix-cell font-bold ${cellClass}`}>
+          <Amount value={totals.get(mk) || 0} onClick={onCellClick ? () => onCellClick({ bucket, monthKey: mk }) : undefined} />
+        </td>
       ))}
     </tr>
   );
 }
 
-function CategoryRows({ categories, monthKeys }: { categories: CategoryMap; monthKeys: string[] }) {
+function CategoryRows({ categories, monthKeys, bucket, onCellClick }: {
+  categories: CategoryMap; monthKeys: string[]; bucket: Bucket; onCellClick?: CellClickFn;
+}) {
   return (
     <>
       {Array.from(categories.entries()).map(([cat, catMap]) => {
@@ -55,9 +79,13 @@ function CategoryRows({ categories, monthKeys }: { categories: CategoryMap; mont
         return (
           <tr key={cat} className="hover:bg-muted/30">
             <td className="matrix-subcategory sticky left-0 bg-card z-10">{cat}</td>
-            <td className="matrix-cell text-muted-foreground">{formatAmountShort(yt)}</td>
+            <td className="matrix-cell text-muted-foreground">
+              <Amount value={yt} onClick={onCellClick ? () => onCellClick({ bucket, category: cat }) : undefined} />
+            </td>
             {monthKeys.map((mk) => (
-              <td key={mk} className="matrix-cell">{formatAmountShort(catMap.get(mk) || 0)}</td>
+              <td key={mk} className="matrix-cell">
+                <Amount value={catMap.get(mk) || 0} onClick={onCellClick ? () => onCellClick({ bucket, category: cat, monthKey: mk }) : undefined} />
+              </td>
             ))}
           </tr>
         );
@@ -66,8 +94,9 @@ function CategoryRows({ categories, monthKeys }: { categories: CategoryMap; mont
   );
 }
 
-function ProfitRow({ label, incomeTotals, expenseTotals, monthKeys, className }: {
+function ProfitRow({ label, incomeTotals, expenseTotals, monthKeys, className, onCellClick }: {
   label: string; incomeTotals: TotalsMap; expenseTotals: TotalsMap; monthKeys: string[]; className?: string;
+  onCellClick?: CellClickFn;
 }) {
   let yearProfit = 0;
   const monthProfits = monthKeys.map((mk) => {
@@ -79,11 +108,11 @@ function ProfitRow({ label, incomeTotals, expenseTotals, monthKeys, className }:
     <tr className={`bg-accent border-t-2 border-border ${className}`}>
       <td className="px-3 py-1.5 font-bold text-sm sticky left-0 bg-accent z-10">{label}</td>
       <td className={`matrix-cell font-bold ${yearProfit >= 0 ? "text-income" : "text-expense"}`}>
-        {formatAmountShort(yearProfit)}
+        <Amount value={yearProfit} onClick={onCellClick ? () => onCellClick({ bucket: "all" }) : undefined} />
       </td>
       {monthProfits.map((p, i) => (
         <td key={monthKeys[i]} className={`matrix-cell font-bold ${p >= 0 ? "text-income" : "text-expense"}`}>
-          {formatAmountShort(p)}
+          <Amount value={p} onClick={onCellClick ? () => onCellClick({ bucket: "all", monthKey: monthKeys[i] }) : undefined} />
         </td>
       ))}
     </tr>
@@ -113,10 +142,22 @@ function ProfitabilityRow({ incomeTotals, expenseTotals, monthKeys }: {
 
 export default function PnLReport() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>("UZS");
   const { convert, isLoading: ratesLoading } = useExchangeRates();
   const { categories: categoryList } = useCategories();
   const isMobile = useIsMobile();
+
+  const handleCellClick: CellClickFn = useCallback(({ category, monthKey, bucket }) => {
+    const params = new URLSearchParams();
+    if (category) params.set("category", category);
+    if (monthKey) params.set("month", monthKey);
+    if (bucket && bucket !== "all") params.set("bucket", bucket);
+    if (isUnified) params.set("unified", "1");
+    params.set("currency", baseCurrency);
+    navigate(`/transactions?${params.toString()}`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate, currencyMode]);
 
   const isUnified = currencyMode.startsWith("ALL_");
   const baseCurrency = isUnified ? currencyMode.replace("ALL_", "") : currencyMode;
