@@ -17,6 +17,7 @@ import { TransactionSheet, type TransactionFull, type TransactionPayload } from 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileTransactionList } from "@/components/MobileTransactionList";
 import { MobileTransactionDrawer } from "@/components/MobileTransactionDrawer";
+import { TransactionTotals } from "@/components/TransactionTotals";
 
 const typeStyles: Record<TransactionType, string> = {
   income: "bg-income-muted text-income border-income/20",
@@ -184,14 +185,16 @@ export default function Transactions() {
 
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
+    const mobileTxns = hasDrill ? filtered : transactions;
     return (
       <>
         {DrillBanner && <div className="p-3 pb-0">{DrillBanner}</div>}
         <MobileTransactionList
-          transactions={hasDrill ? filtered : transactions}
+          transactions={mobileTxns}
           isLoading={isLoading}
           onAdd={() => setSheetOpen(true)}
           onSelect={(t) => setSelected(t)}
+          header={<TransactionTotals transactions={mobileTxns} compact />}
         />
 
         <MobileTransactionDrawer
@@ -257,6 +260,8 @@ export default function Transactions() {
           </SelectContent>
         </Select>
       </div>
+
+      <TransactionTotals transactions={filtered} />
 
       {/* Table */}
       <div className="border rounded-md overflow-auto bg-card">
