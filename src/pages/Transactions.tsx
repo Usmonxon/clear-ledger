@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Plus, Search, Filter, Paperclip } from "lucide-react";
+import { Plus, Search, Filter, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCategories } from "@/hooks/useCategories";
 import { formatAmountShort, type TransactionType } from "@/data/mockData";
 import { TransactionSheet, type TransactionFull, type TransactionPayload } from "@/components/TransactionSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,12 +37,44 @@ export default function Transactions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { categories: categoryList } = useCategories();
+
+  const drillCategory = searchParams.get("category");
+  const drillMonth = searchParams.get("month");
+  const drillBucket = searchParams.get("bucket"); // income | cogs | opex
+  const drillCurrency = searchParams.get("currency");
+  const hasDrill = !!(drillCategory || drillMonth || drillBucket);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selected, setSelected] = useState<TransactionFull | null>(null);
+
+  useEffect(() => {
+    if (drillCurrency) setCurrencyFilter(drillCurrency);
+    if (drillBucket === "income") setTypeFilter("income");
+    else if (drillBucket === "cogs" || drillBucket === "opex") setTypeFilter("expense");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillCurrency, drillBucket]);
+
+  const cogsNames = useMemo(() => {
+    const s = new Set<string>();
+    categoryList.filter((c) => c.type === "expense" && c.is_cogs).forEach((c) => s.add(c.name));
+    return s;
+  }, [categoryList]);
+
+  const clearDrill = () => {
+    setSearchParams({});
+    setCurrencyFilter("all");
+    setTypeFilter("all");
+  };
+
+  const drillMonthLabel = (mk: string) => {
+    const [y, m] = mk.split("-");
+    return format(new Date(parseInt(y), parseInt(m) - 1, 1), "LLLL yyyy", { locale: ru });
+  };
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const { data: transactions = [], isLoading } = useQuery({
