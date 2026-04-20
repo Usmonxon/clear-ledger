@@ -13,7 +13,7 @@ function sumByCurrency(txns: TransactionFull[]): CurrencyMap {
   return m;
 }
 
-function formatMap(m: CurrencyMap, sign: "+" | "-" | "" = "") {
+function formatMap(m: CurrencyMap, sign: string = "") {
   const entries = Object.entries(m).filter(([, v]) => v !== 0);
   if (entries.length === 0) return null;
   return entries
