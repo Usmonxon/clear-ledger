@@ -1,35 +1,52 @@
 
 
-## Plan: Group desktop transactions by date
+## Plan: Make PnL numbers clickable → drill down to filtered transactions
 
-### What changes
-Currently the desktop table shows a flat list with the date repeated on every row. We'll group transactions by `transaction_date` and render a date header row spanning all columns before each group — similar to how the mobile view already groups by date.
+Click any amount cell in the PnL table and land on the Transactions page, pre-filtered to show exactly the rows that sum to that number.
 
-### Implementation
+### How it works
 
-**File: `src/pages/Transactions.tsx`**
+Each data cell in the PnL report corresponds to a slice of transactions defined by three dimensions:
+- **Category** (e.g. "Подписка amoCRM") — or "all" for aggregate rows (ДОХОДЫ, СЕБЕСТОИМОСТЬ, ОПЕРАЦИОННЫЕ РАСХОДЫ, ЧИСТАЯ ПРИБЫЛЬ)
+- **Reporting month** (e.g. `2026-04`) — or "all" for the ГОД (year) column
+- **Type bucket** — income / cogs / opex / all
 
-1. Add a `useMemo` to group `filtered` transactions by `transaction_date` into an array of `[dateStr, transactions[]]` pairs (already sorted desc from the query).
+Clicking a cell navigates to `/transactions` with those dimensions as URL query params. The Transactions page reads the params and applies them as filters on top of the existing filter UI.
 
-2. Replace the flat `filtered.map(...)` in `<tbody>` with the grouped iteration:
-   - For each date group, render a separator `<tr>` with a single `<td colSpan={8}>` showing the formatted date (e.g. "13 АПРЕЛЯ 2026") in bold muted text with a subtle background.
-   - Then render the transaction rows as before, but **remove the date from individual rows** (or keep it lighter/hidden since the group header already shows it).
+### Changes
 
-3. Use `date-fns` `format` + `parseISO` with `ru` locale (already imported in the mobile component) for the date header formatting.
+**1. `src/pages/PnLReport.tsx`**
+- Wrap every numeric `<td>` (category rows, aggregate rows ДОХОДЫ/СЕБЕСТОИМОСТЬ/ОПЕРАЦИОННЫЕ РАСХОДЫ, ВАЛОВАЯ ПРИБЫЛЬ, ЧИСТАЯ ПРИБЫЛЬ, and the ГОД column) in a clickable element that calls `navigate('/transactions?...')`.
+- Skip РЕНТАБЕЛЬНОСТЬ row (percentages aren't drillable).
+- Also pass `currency=<baseCurrency>` and, when unified mode is active, `unified=1` so the destination can show the same scope.
+- Add subtle hover styling (underline + cursor-pointer) so users see cells are interactive.
+- Propagate click handler into `ReportRow`, `CategoryRows`, `ProfitRow` via a new `onCellClick(category, monthKey)` prop.
 
-### Visual result
+**2. `src/pages/Transactions.tsx`**
+- Read `useSearchParams` on mount and merge into existing filter state:
+  - `category` → category filter
+  - `month` → reporting_month filter (new — currently filter is by transaction_date range, we'll add reporting_month filter)
+  - `bucket=income|cogs|opex` → type filter (expense with COGS flag subset, or income)
+  - `currency` → currency filter
+- When arriving via drill-down, show a small dismissible banner at the top: "Фильтр из ОПУ: Подписка amoCRM · Апрель 2026 · UZS [×]" so the user understands why the list is narrowed and can clear it in one click.
+- Clearing the banner removes the URL params and resets those filters.
+
+**3. `src/components/PnLSankeyChart.tsx`** (optional, same session)
+- Make Sankey nodes clickable too, using the same URL scheme. This is a small addition since the data is already available.
+
+### URL examples
 ```text
-┌──────────────────────────────────────────────────┐
-│  13 АПРЕЛЯ 2026                                  │  ← date header row
-├──────┬──────────┬────────┬─────────┬─────────────┤
-│      │ amoCRM   │ Humo   │ 1 365k  │ comment...  │
-│      │ МоиЗвонки│ Humo   │   222k  │ comment...  │
-├──────────────────────────────────────────────────┤
-│  12 АПРЕЛЯ 2026                                  │  ← next date
-├──────┬──────────┬────────┬─────────┬─────────────┤
-│      │ Аренда   │ Humo   │   900k  │ comment...  │
-└──────┴──────────┴────────┴─────────┴─────────────┘
+/transactions?category=Подписка amoCRM&month=2026-04&bucket=cogs&currency=UZS
+/transactions?bucket=income&month=2026-04&currency=UZS          ← clicked ДОХОДЫ Apr
+/transactions?bucket=cogs&currency=UZS                          ← clicked СЕБЕСТОИМОСТЬ ГОД
+/transactions?month=2026-04&currency=UZS                        ← clicked ЧИСТАЯ ПРИБЫЛЬ Apr (shows all income+expense for that month)
 ```
 
-The Date column stays in the header but individual rows won't repeat it (keeping the column for alignment consistency, just leaving cells empty or showing a short time if available later).
+### Filter semantics note
+PnL groups by `reporting_month` (accrual), not `transaction_date`. The drill-down filter must use `reporting_month` so the resulting transaction list sums back to the exact number clicked. I'll add a reporting-month filter to the Transactions page (a simple equality check — no new UI needed beyond the dismissible banner, since it's driven by URL only).
+
+### Out of scope
+- Clicking the РЕНТАБЕЛЬНОСТЬ % row
+- Deep-linking from the Cashflow report (can be added later with the same pattern)
+- Persisting the filter across navigation (it lives only while the URL param is present)
 
