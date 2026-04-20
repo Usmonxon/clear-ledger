@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ru } from "date-fns/locale";
-import { Plus, Search, Filter, Paperclip } from "lucide-react";
+import { Plus, Search, Filter, Paperclip, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCategories } from "@/hooks/useCategories";
 import { formatAmountShort, type TransactionType } from "@/data/mockData";
 import { TransactionSheet, type TransactionFull, type TransactionPayload } from "@/components/TransactionSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -35,12 +37,44 @@ export default function Transactions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { categories: categoryList } = useCategories();
+
+  const drillCategory = searchParams.get("category");
+  const drillMonth = searchParams.get("month");
+  const drillBucket = searchParams.get("bucket"); // income | cogs | opex
+  const drillCurrency = searchParams.get("currency");
+  const hasDrill = !!(drillCategory || drillMonth || drillBucket);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [currencyFilter, setCurrencyFilter] = useState<string>("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selected, setSelected] = useState<TransactionFull | null>(null);
+
+  useEffect(() => {
+    if (drillCurrency) setCurrencyFilter(drillCurrency);
+    if (drillBucket === "income") setTypeFilter("income");
+    else if (drillBucket === "cogs" || drillBucket === "opex") setTypeFilter("expense");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drillCurrency, drillBucket]);
+
+  const cogsNames = useMemo(() => {
+    const s = new Set<string>();
+    categoryList.filter((c) => c.type === "expense" && c.is_cogs).forEach((c) => s.add(c.name));
+    return s;
+  }, [categoryList]);
+
+  const clearDrill = () => {
+    setSearchParams({});
+    setCurrencyFilter("all");
+    setTypeFilter("all");
+  };
+
+  const drillMonthLabel = (mk: string) => {
+    const [y, m] = mk.split("-");
+    return format(new Date(parseInt(y), parseInt(m) - 1, 1), "LLLL yyyy", { locale: ru });
+  };
 
   // ─── Fetch ────────────────────────────────────────────────────────────────
   const { data: transactions = [], isLoading } = useQuery({
@@ -103,6 +137,14 @@ export default function Transactions() {
   const filtered = transactions.filter((t) => {
     if (typeFilter !== "all" && t.type !== typeFilter) return false;
     if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
+    if (drillCategory && t.cashflow_category !== drillCategory) return false;
+    if (drillMonth && t.reporting_month !== drillMonth) return false;
+    if (drillBucket) {
+      if (drillBucket === "income" && t.type !== "income") return false;
+      if (drillBucket === "cogs" && !(t.type === "expense" && cogsNames.has(t.cashflow_category))) return false;
+      if (drillBucket === "opex" && !(t.type === "expense" && !cogsNames.has(t.cashflow_category))) return false;
+    }
+    if (hasDrill && (t.type === "transfer" || t.type === "dividend")) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
@@ -124,12 +166,29 @@ export default function Transactions() {
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
+  // Drill banner (shared)
+  const DrillBanner = hasDrill ? (
+    <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-md text-xs">
+      <span className="font-medium text-primary">Фильтр из ОПУ:</span>
+      <span className="text-foreground flex flex-wrap gap-1.5">
+        {drillCategory && <Badge variant="outline" className="text-[10px]">{drillCategory}</Badge>}
+        {drillMonth && <Badge variant="outline" className="text-[10px]">{drillMonthLabel(drillMonth)}</Badge>}
+        {drillBucket && <Badge variant="outline" className="text-[10px] uppercase">{drillBucket}</Badge>}
+        {drillCurrency && <Badge variant="outline" className="text-[10px]">{drillCurrency}</Badge>}
+      </span>
+      <Button variant="ghost" size="sm" className="h-6 px-2 ml-auto text-xs" onClick={clearDrill}>
+        <X className="h-3 w-3 mr-1" /> Сбросить
+      </Button>
+    </div>
+  ) : null;
+
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <>
+        {DrillBanner && <div className="p-3 pb-0">{DrillBanner}</div>}
         <MobileTransactionList
-          transactions={transactions}
+          transactions={hasDrill ? filtered : transactions}
           isLoading={isLoading}
           onAdd={() => setSheetOpen(true)}
           onSelect={(t) => setSelected(t)}
@@ -167,6 +226,8 @@ export default function Transactions() {
           Добавить
         </Button>
       </div>
+
+      {DrillBanner}
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
