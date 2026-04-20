@@ -42,9 +42,10 @@ interface Props {
   isLoading: boolean;
   onAdd: () => void;
   onSelect: (t: TransactionFull) => void;
+  header?: React.ReactNode;
 }
 
-export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect }: Props) {
+export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect, header }: Props) {
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
