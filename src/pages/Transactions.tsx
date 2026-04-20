@@ -261,6 +261,8 @@ export default function Transactions() {
         </Select>
       </div>
 
+      <TransactionTotals transactions={filtered} />
+
       {/* Table */}
       <div className="border rounded-md overflow-auto bg-card">
         <table className="w-full erp-table">
