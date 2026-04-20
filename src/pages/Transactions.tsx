@@ -166,12 +166,29 @@ export default function Transactions() {
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
+  // Drill banner (shared)
+  const DrillBanner = hasDrill ? (
+    <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 border border-primary/20 rounded-md text-xs">
+      <span className="font-medium text-primary">Фильтр из ОПУ:</span>
+      <span className="text-foreground flex flex-wrap gap-1.5">
+        {drillCategory && <Badge variant="outline" className="text-[10px]">{drillCategory}</Badge>}
+        {drillMonth && <Badge variant="outline" className="text-[10px]">{drillMonthLabel(drillMonth)}</Badge>}
+        {drillBucket && <Badge variant="outline" className="text-[10px] uppercase">{drillBucket}</Badge>}
+        {drillCurrency && <Badge variant="outline" className="text-[10px]">{drillCurrency}</Badge>}
+      </span>
+      <Button variant="ghost" size="sm" className="h-6 px-2 ml-auto text-xs" onClick={clearDrill}>
+        <X className="h-3 w-3 mr-1" /> Сбросить
+      </Button>
+    </div>
+  ) : null;
+
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <>
+        {DrillBanner && <div className="p-3 pb-0">{DrillBanner}</div>}
         <MobileTransactionList
-          transactions={transactions}
+          transactions={hasDrill ? filtered : transactions}
           isLoading={isLoading}
           onAdd={() => setSheetOpen(true)}
           onSelect={(t) => setSelected(t)}
