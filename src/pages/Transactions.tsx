@@ -185,14 +185,16 @@ export default function Transactions() {
 
   // ─── Mobile ───────────────────────────────────────────────────────────────
   if (isMobile) {
+    const mobileTxns = hasDrill ? filtered : transactions;
     return (
       <>
         {DrillBanner && <div className="p-3 pb-0">{DrillBanner}</div>}
         <MobileTransactionList
-          transactions={hasDrill ? filtered : transactions}
+          transactions={mobileTxns}
           isLoading={isLoading}
           onAdd={() => setSheetOpen(true)}
           onSelect={(t) => setSelected(t)}
+          header={<TransactionTotals transactions={mobileTxns} compact />}
         />
 
         <MobileTransactionDrawer
