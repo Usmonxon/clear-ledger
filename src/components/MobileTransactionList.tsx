@@ -88,6 +88,8 @@ export function MobileTransactionList({ transactions, isLoading, onAdd, onSelect
         </div>
       </div>
 
+      {header && <div className="px-4 pb-2">{header}</div>}
+
       {/* Transaction list */}
       <div className="flex-1 overflow-auto px-4">
         {isLoading ? (
