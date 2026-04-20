@@ -137,6 +137,14 @@ export default function Transactions() {
   const filtered = transactions.filter((t) => {
     if (typeFilter !== "all" && t.type !== typeFilter) return false;
     if (currencyFilter !== "all" && t.currency !== currencyFilter) return false;
+    if (drillCategory && t.cashflow_category !== drillCategory) return false;
+    if (drillMonth && t.reporting_month !== drillMonth) return false;
+    if (drillBucket) {
+      if (drillBucket === "income" && t.type !== "income") return false;
+      if (drillBucket === "cogs" && !(t.type === "expense" && cogsNames.has(t.cashflow_category))) return false;
+      if (drillBucket === "opex" && !(t.type === "expense" && !cogsNames.has(t.cashflow_category))) return false;
+    }
+    if (hasDrill && (t.type === "transfer" || t.type === "dividend")) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
