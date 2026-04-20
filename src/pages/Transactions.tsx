@@ -17,6 +17,7 @@ import { TransactionSheet, type TransactionFull, type TransactionPayload } from 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileTransactionList } from "@/components/MobileTransactionList";
 import { MobileTransactionDrawer } from "@/components/MobileTransactionDrawer";
+import { TransactionTotals } from "@/components/TransactionTotals";
 
 const typeStyles: Record<TransactionType, string> = {
   income: "bg-income-muted text-income border-income/20",
