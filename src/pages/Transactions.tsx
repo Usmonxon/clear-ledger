@@ -184,6 +184,8 @@ export default function Transactions() {
   ) : null;
 
   // ─── Mobile ───────────────────────────────────────────────────────────────
+  const hasAnyFilter = hasDrill || !!search || typeFilter !== "all" || currencyFilter !== "all";
+
   if (isMobile) {
     const mobileTxns = hasDrill ? filtered : transactions;
     return (
@@ -194,7 +196,7 @@ export default function Transactions() {
           isLoading={isLoading}
           onAdd={() => setSheetOpen(true)}
           onSelect={(t) => setSelected(t)}
-          header={<TransactionTotals transactions={mobileTxns} compact />}
+          header={hasAnyFilter ? <TransactionTotals transactions={mobileTxns} compact /> : undefined}
         />
 
         <MobileTransactionDrawer
@@ -261,7 +263,7 @@ export default function Transactions() {
         </Select>
       </div>
 
-      <TransactionTotals transactions={filtered} />
+      {hasAnyFilter && <TransactionTotals transactions={filtered} />}
 
       {/* Table */}
       <div className="border rounded-md overflow-auto bg-card">
