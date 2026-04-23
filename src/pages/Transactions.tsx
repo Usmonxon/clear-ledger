@@ -96,6 +96,8 @@ export default function Transactions() {
     mutationFn: async (txn: TransactionPayload) => {
       const { error } = await supabase.from("transactions").insert({ ...txn, user_id: user!.id });
       if (error) throw error;
+      // Fire-and-forget Telegram notification (silently no-ops if not linked / not enabled)
+      supabase.functions.invoke("telegram-on-transaction", { body: txn }).catch(() => {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });

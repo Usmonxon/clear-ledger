@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDelete } from "@/components/ConfirmDelete";
+import { TelegramTab } from "@/components/TelegramTab";
 import { format } from "date-fns";
 
 type Member = {
@@ -589,6 +590,7 @@ export default function Settings() {
           <TabsTrigger value="categories" className="text-xs h-7">Категории</TabsTrigger>
           <TabsTrigger value="rates" className="text-xs h-7">Курсы валют</TabsTrigger>
           <TabsTrigger value="access" className="text-xs h-7">Доступ</TabsTrigger>
+          <TabsTrigger value="telegram" className="text-xs h-7">Telegram</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-4 space-y-4">
@@ -666,6 +668,17 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <AccessTab />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="telegram" className="mt-4">
+          <Card className="border">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <CardTitle className="text-sm">Telegram бот</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <TelegramTab />
             </CardContent>
           </Card>
         </TabsContent>
