@@ -453,7 +453,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             />
           </div>
 
-          <Button onClick={handleSubmit} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
+          <Button onClick={handleSubmit} disabled={exceedsBalance} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
             {isEdit ? "Сохранить изменения" : "Сохранить операцию"}
           </Button>
         </div>
