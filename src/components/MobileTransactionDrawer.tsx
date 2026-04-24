@@ -246,6 +246,14 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                         {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {(() => {
+                      const b = getBalance(fromAccount || defaultWallet);
+                      return b ? (
+                        <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                          Баланс: {formatAmountShort(b.current)} {b.currency}
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 px-4 py-3 bg-card">
@@ -272,6 +280,14 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                       {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {(() => {
+                    const b = getBalance(wallet || defaultWallet);
+                    return b ? (
+                      <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                        Баланс: {formatAmountShort(b.current)} {b.currency}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             )}
