@@ -196,7 +196,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
               onFocus={scrollIntoViewOnFocus}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
-                typeColor[type]
+                exceedsBalance ? "text-destructive" : typeColor[type]
               )}
             />
             <div className="flex items-center justify-center gap-2 mt-2">
@@ -213,6 +213,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                 <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">{fromAccountCurrency}</span>
               ) : null}
             </div>
+            {exceedsBalance && activeBalance && (
+              <p className="text-[11px] text-destructive mt-2">
+                Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})
+              </p>
+            )}
           </div>
 
           {/* Cross-currency target amount */}
