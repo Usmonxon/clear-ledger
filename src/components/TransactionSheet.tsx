@@ -69,6 +69,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
 
   const { getCategoryNames, isLoading: catsLoading } = useCategories();
   const { accounts, accountNames, isLoading: accsLoading } = useAccounts();
+  const { getBalance } = useAccountBalances(initial?.id);
 
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "UZS");
