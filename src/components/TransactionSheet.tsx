@@ -28,7 +28,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
-import { type TransactionType, type Currency } from "@/data/mockData";
+import { useAccountBalances } from "@/hooks/useAccountBalances";
+import { type TransactionType, type Currency, formatAmountShort } from "@/data/mockData";
 
 export type TransactionPayload = {
   transaction_date: string;
