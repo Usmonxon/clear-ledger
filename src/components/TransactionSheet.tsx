@@ -167,6 +167,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
       toast({ title: "Укажите сумму зачисления", variant: "destructive" });
       return;
     }
+    if (exceedsBalance) {
+      toast({ title: "Недостаточно средств на счёте", description: `Доступно: ${formatAmountShort(activeBalance!.current)} ${activeBalance!.currency}`, variant: "destructive" });
+      return;
+    }
 
     const effectiveCurrency = type === "transfer" && fromAccountCurrency ? fromAccountCurrency as Currency : currency;
 
