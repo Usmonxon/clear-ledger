@@ -14,13 +14,17 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import { useAuth } from "@/hooks/useAuth";
+import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
+import { useTelegramAutoLogin } from "@/hooks/useTelegramAutoLogin";
 
 const queryClient = new QueryClient();
 
 function AppRoutes() {
   const { user, loading } = useAuth();
+  useTelegramWebApp();
+  const tg = useTelegramAutoLogin(!!user);
 
-  if (loading) {
+  if (loading || (tg.isTelegram && !user && (tg.status === "idle" || tg.status === "trying"))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-xs text-muted-foreground animate-pulse">Загрузка...</div>
@@ -29,8 +33,9 @@ function AppRoutes() {
   }
 
   if (!user) {
-    return <Auth />;
+    return <Auth telegram={tg.isTelegram ? { name: tg.tgName, status: tg.status } : undefined} />;
   }
+
 
   return (
     <AppLayout>

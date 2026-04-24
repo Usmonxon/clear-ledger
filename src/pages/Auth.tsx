@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-export default function Auth() {
+interface AuthProps {
+  telegram?: { name: string; status: "idle" | "trying" | "linked" | "not-linked" | "error" };
+}
+
+export default function Auth({ telegram }: AuthProps = {}) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +70,18 @@ export default function Auth() {
         </div>
 
         <div className="bg-card border rounded-lg p-6 space-y-4">
+          {telegram && (
+            <div className="rounded-md border border-income/30 bg-income/10 p-3 text-xs">
+              <div className="font-semibold text-foreground mb-1">
+                Привет{telegram.name ? `, ${telegram.name}` : ""}! 👋
+              </div>
+              <div className="text-muted-foreground">
+                {telegram.status === "not-linked" || telegram.status === "error"
+                  ? "Этот Telegram ещё не связан с аккаунтом Finco. Войдите ниже один раз — в следующий раз вход будет автоматическим."
+                  : "Подключаем ваш Telegram к Finco..."}
+              </div>
+            </div>
+          )}
           <div>
             <h2 className="text-sm font-semibold">
               {mode === "login" ? "Вход в систему" : "Регистрация"}
@@ -76,6 +92,7 @@ export default function Auth() {
                 : "Создайте новый аккаунт"}
             </p>
           </div>
+
 
           <form onSubmit={handleSubmit} className="space-y-3">
             {mode === "signup" && (
