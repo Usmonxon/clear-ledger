@@ -91,9 +91,21 @@ async function handleCommand(supabase: any, chatId: number, text: string) {
   const userId = link.user_id;
 
   if (cmd === '/help' || cmd === '/start') {
-    await sendMessage(chatId, '/balance — балансы\n/today — за сегодня\n/month — отчёт за месяц\n/backup — Excel\n/notify on|off\n/digest on|off\n/unlink');
+    await sendMessage(chatId, '/app — открыть Finco в Telegram\n/balance — балансы\n/today — за сегодня\n/month — отчёт за месяц\n/backup — Excel\n/notify on|off\n/digest on|off\n/unlink');
     return;
   }
+
+  if (cmd === '/app') {
+    await sendMessage(chatId, '📱 Откройте Finco прямо в Telegram:', {
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🚀 Открыть Finco', web_app: { url: 'https://finco-psg.lovable.app' } },
+        ]],
+      },
+    });
+    return;
+  }
+
 
   if (cmd === '/balance') {
     const { data: accounts } = await supabase.from('accounts').select('name, currency, initial_balance').eq('user_id', userId);
