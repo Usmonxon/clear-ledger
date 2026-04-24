@@ -289,6 +289,14 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
                   {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {(() => {
+                const b = getBalance(wallet || defaultWallet);
+                return b ? (
+                  <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                    Баланс: {formatAmountShort(b.current)} {b.currency}
+                  </p>
+                ) : null;
+              })()}
             </div>
           )}
 
