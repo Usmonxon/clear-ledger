@@ -53,6 +53,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
 
   const { getCategoryNames, isLoading: catsLoading } = useCategories();
   const { accounts, accountNames, isLoading: accsLoading } = useAccounts();
+  const { getBalance } = useAccountBalances(initial?.id);
 
   const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
