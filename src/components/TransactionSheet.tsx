@@ -123,6 +123,12 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
 
   const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
+  const activeSourceAccount = type === "transfer" ? (fromAccount || accountNames[0] || "") : (wallet || accountNames[0] || "");
+  const activeBalance = activeSourceAccount ? getBalance(activeSourceAccount) : null;
+  const isOutgoing = type === "expense" || type === "dividend" || type === "transfer";
+  const parsedAmount = parseFloat(amount || "0") || 0;
+  const exceedsBalance = isOutgoing && activeBalance != null && parsedAmount > activeBalance.current;
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user) return;
