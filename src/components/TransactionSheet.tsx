@@ -256,9 +256,16 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
                     {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {fromAccountCurrency && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {fromAccountCurrency}</p>
-                )}
+                {(() => {
+                  const b = getBalance(fromAccount || defaultWallet);
+                  return b ? (
+                    <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                      Баланс: {formatAmountShort(b.current)} {b.currency}
+                    </p>
+                  ) : fromAccountCurrency ? (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {fromAccountCurrency}</p>
+                  ) : null;
+                })()}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">На счёт</Label>
