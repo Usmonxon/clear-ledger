@@ -72,7 +72,7 @@ async function handleCommand(supabase: any, chatId: number, text: string) {
         link_code_expires_at: null,
       })
       .eq('id', link.id);
-    await sendMessage(chatId, '✅ Аккаунт привязан!\n\nДоступные команды:\n/balance — балансы счетов\n/today — операции за сегодня\n/month — отчёт ОПУ за месяц\n/backup — Excel-выгрузка\n/notify on|off — уведомления о новых операциях\n/digest on|off — утренний дайджест\n/unlink — отвязать');
+    await sendMessage(chatId, '✅ Аккаунт привязан!\n\nДоступные команды:\n/app — открыть Finco в Telegram\n/balance — балансы счетов\n/today — операции за сегодня\n/month — отчёт ОПУ за месяц\n/backup — Excel-выгрузка\n/notify on|off — уведомления о новых операциях\n/digest on|off — утренний дайджест\n/unlink — отвязать');
     return;
   }
 
