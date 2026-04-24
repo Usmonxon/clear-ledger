@@ -413,7 +413,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
 
           {/* Actions */}
           <div className="space-y-2">
-            <Button onClick={handleSubmit} className="w-full h-12 text-sm font-medium rounded-xl bg-income hover:bg-income/90 text-income-foreground">
+            <Button onClick={handleSubmit} disabled={exceedsBalance} className="w-full h-12 text-sm font-medium rounded-xl bg-income hover:bg-income/90 text-income-foreground">
               {isEdit ? "Сохранить" : "Добавить"}
             </Button>
 
