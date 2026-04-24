@@ -135,6 +135,10 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
       toast({ title: "Укажите сумму зачисления", variant: "destructive" });
       return;
     }
+    if (exceedsBalance) {
+      toast({ title: "Недостаточно средств на счёте", description: `Доступно: ${formatAmountShort(activeBalance!.current)} ${activeBalance!.currency}`, variant: "destructive" });
+      return;
+    }
     const effectiveCurrency = type === "transfer" && fromAccountCurrency ? fromAccountCurrency as Currency : currency;
     onSubmit({
       transaction_date: format(date, "yyyy-MM-dd"),
