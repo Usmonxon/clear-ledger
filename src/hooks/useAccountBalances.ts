@@ -30,7 +30,7 @@ export function useAccountBalances(excludeTxnId?: string) {
   const { accounts } = useAccounts();
 
   const { data: transactions = [] } = useQuery({
-    queryKey: ["transactions-balances", user?.id],
+    queryKey: ["transactions", "balances", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("transactions")
