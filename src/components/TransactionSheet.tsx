@@ -28,7 +28,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
-import { type TransactionType, type Currency } from "@/data/mockData";
+import { useAccountBalances } from "@/hooks/useAccountBalances";
+import { type TransactionType, type Currency, formatAmountShort } from "@/data/mockData";
 
 export type TransactionPayload = {
   transaction_date: string;
@@ -68,6 +69,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
 
   const { getCategoryNames, isLoading: catsLoading } = useCategories();
   const { accounts, accountNames, isLoading: accsLoading } = useAccounts();
+  const { getBalance } = useAccountBalances(initial?.id);
 
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? "UZS");
@@ -121,6 +123,12 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
 
   const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
+  const activeSourceAccount = type === "transfer" ? (fromAccount || accountNames[0] || "") : (wallet || accountNames[0] || "");
+  const activeBalance = activeSourceAccount ? getBalance(activeSourceAccount) : null;
+  const isOutgoing = type === "expense" || type === "dividend" || type === "transfer";
+  const parsedAmount = parseFloat(amount || "0") || 0;
+  const exceedsBalance = isOutgoing && activeBalance != null && parsedAmount > activeBalance.current;
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user) return;
@@ -157,6 +165,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
     }
     if (isCrossCurrency && !targetAmount) {
       toast({ title: "Укажите сумму зачисления", variant: "destructive" });
+      return;
+    }
+    if (exceedsBalance) {
+      toast({ title: "Недостаточно средств на счёте", description: `Доступно: ${formatAmountShort(activeBalance!.current)} ${activeBalance!.currency}`, variant: "destructive" });
       return;
     }
 
@@ -244,9 +256,16 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
                     {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {fromAccountCurrency && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {fromAccountCurrency}</p>
-                )}
+                {(() => {
+                  const b = getBalance(fromAccount || defaultWallet);
+                  return b ? (
+                    <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                      Баланс: {formatAmountShort(b.current)} {b.currency}
+                    </p>
+                  ) : fromAccountCurrency ? (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">Валюта: {fromAccountCurrency}</p>
+                  ) : null;
+                })()}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">На счёт</Label>
@@ -270,6 +289,14 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
                   {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {(() => {
+                const b = getBalance(wallet || defaultWallet);
+                return b ? (
+                  <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                    Баланс: {formatAmountShort(b.current)} {b.currency}
+                  </p>
+                ) : null;
+              })()}
             </div>
           )}
 
@@ -278,7 +305,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма списания ({fromAccountCurrency})</Label>
-                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className={cn("h-9 font-mono", exceedsBalance && "border-destructive focus-visible:ring-destructive")} />
+                {exceedsBalance && activeBalance && (
+                  <p className="text-[10px] text-destructive mt-0.5">Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})</p>
+                )}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма зачисления ({toAccountCurrency})</Label>
@@ -289,7 +319,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div className="grid grid-cols-[1fr_80px] gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма</Label>
-                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className={cn("h-9 font-mono", exceedsBalance && "border-destructive focus-visible:ring-destructive")} />
+                {exceedsBalance && activeBalance && (
+                  <p className="text-[10px] text-destructive mt-0.5">Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})</p>
+                )}
               </div>
               {type !== "transfer" ? (
                 <div>
@@ -420,7 +453,7 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             />
           </div>
 
-          <Button onClick={handleSubmit} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
+          <Button onClick={handleSubmit} disabled={exceedsBalance} className="w-full h-9 text-xs bg-income hover:bg-income/90 text-income-foreground">
             {isEdit ? "Сохранить изменения" : "Сохранить операцию"}
           </Button>
         </div>

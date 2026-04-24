@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useAccountBalances } from "@/hooks/useAccountBalances";
 import { formatAmountShort, type TransactionType, type Currency } from "@/data/mockData";
 import type { TransactionFull, TransactionPayload } from "@/components/TransactionSheet";
 
@@ -52,6 +53,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
 
   const { getCategoryNames, isLoading: catsLoading } = useCategories();
   const { accounts, accountNames, isLoading: accsLoading } = useAccounts();
+  const { getBalance } = useAccountBalances(initial?.id);
 
   const [type, setType] = useState<TransactionType>(initial?.type ?? "expense");
   const [amount, setAmount] = useState(initial ? String(initial.amount) : "");
@@ -89,6 +91,12 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
 
   const isCrossCurrency = type === "transfer" && fromAccountCurrency && toAccountCurrency && fromAccountCurrency !== toAccountCurrency;
 
+  const activeSourceAccount = type === "transfer" ? (fromAccount || accountNames[0] || "") : (wallet || accountNames[0] || "");
+  const activeBalance = activeSourceAccount ? getBalance(activeSourceAccount) : null;
+  const isOutgoing = type === "expense" || type === "dividend" || type === "transfer";
+  const parsedAmount = parseFloat(amount || "0") || 0;
+  const exceedsBalance = isOutgoing && activeBalance != null && parsedAmount > activeBalance.current;
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !user) return;
@@ -125,6 +133,10 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
     }
     if (isCrossCurrency && !targetAmount) {
       toast({ title: "Укажите сумму зачисления", variant: "destructive" });
+      return;
+    }
+    if (exceedsBalance) {
+      toast({ title: "Недостаточно средств на счёте", description: `Доступно: ${formatAmountShort(activeBalance!.current)} ${activeBalance!.currency}`, variant: "destructive" });
       return;
     }
     const effectiveCurrency = type === "transfer" && fromAccountCurrency ? fromAccountCurrency as Currency : currency;
@@ -184,7 +196,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
               onFocus={scrollIntoViewOnFocus}
               className={cn(
                 "text-center text-4xl font-mono font-bold border-0 bg-transparent h-auto focus-visible:ring-0",
-                typeColor[type]
+                exceedsBalance ? "text-destructive" : typeColor[type]
               )}
             />
             <div className="flex items-center justify-center gap-2 mt-2">
@@ -201,6 +213,11 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                 <span className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">{fromAccountCurrency}</span>
               ) : null}
             </div>
+            {exceedsBalance && activeBalance && (
+              <p className="text-[11px] text-destructive mt-2">
+                Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})
+              </p>
+            )}
           </div>
 
           {/* Cross-currency target amount */}
@@ -234,6 +251,14 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                         {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    {(() => {
+                      const b = getBalance(fromAccount || defaultWallet);
+                      return b ? (
+                        <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                          Баланс: {formatAmountShort(b.current)} {b.currency}
+                        </p>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 px-4 py-3 bg-card">
@@ -260,6 +285,14 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
                       {accsLoading ? <SelectItem value="...">Загрузка...</SelectItem> : accountNames.map((w) => <SelectItem key={w} value={w}>{w}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                  {(() => {
+                    const b = getBalance(wallet || defaultWallet);
+                    return b ? (
+                      <p className={cn("text-[10px] mt-0.5", b.current < 0 ? "text-destructive" : "text-muted-foreground")}>
+                        Баланс: {formatAmountShort(b.current)} {b.currency}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
               </div>
             )}
@@ -380,7 +413,7 @@ export function MobileTransactionDrawer({ open, onOpenChange, onSubmit, onDelete
 
           {/* Actions */}
           <div className="space-y-2">
-            <Button onClick={handleSubmit} className="w-full h-12 text-sm font-medium rounded-xl bg-income hover:bg-income/90 text-income-foreground">
+            <Button onClick={handleSubmit} disabled={exceedsBalance} className="w-full h-12 text-sm font-medium rounded-xl bg-income hover:bg-income/90 text-income-foreground">
               {isEdit ? "Сохранить" : "Добавить"}
             </Button>
 
