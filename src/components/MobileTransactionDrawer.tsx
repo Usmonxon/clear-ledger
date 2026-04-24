@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCategories } from "@/hooks/useCategories";
 import { useAccounts } from "@/hooks/useAccounts";
+import { useAccountBalances } from "@/hooks/useAccountBalances";
 import { formatAmountShort, type TransactionType, type Currency } from "@/data/mockData";
 import type { TransactionFull, TransactionPayload } from "@/components/TransactionSheet";
 
