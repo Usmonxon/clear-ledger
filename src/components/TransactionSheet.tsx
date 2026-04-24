@@ -305,7 +305,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма списания ({fromAccountCurrency})</Label>
-                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className={cn("h-9 font-mono", exceedsBalance && "border-destructive focus-visible:ring-destructive")} />
+                {exceedsBalance && activeBalance && (
+                  <p className="text-[10px] text-destructive mt-0.5">Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})</p>
+                )}
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма зачисления ({toAccountCurrency})</Label>
@@ -316,7 +319,10 @@ export function TransactionSheet({ open, onOpenChange, onSubmit, onDelete, initi
             <div className="grid grid-cols-[1fr_80px] gap-2">
               <div>
                 <Label className="text-xs text-muted-foreground">Сумма</Label>
-                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className="h-9 font-mono" />
+                <Input type="text" inputMode="decimal" placeholder="0" value={formatWithSeparators(amount)} onChange={(e) => setAmount(stripNonNumeric(e.target.value))} className={cn("h-9 font-mono", exceedsBalance && "border-destructive focus-visible:ring-destructive")} />
+                {exceedsBalance && activeBalance && (
+                  <p className="text-[10px] text-destructive mt-0.5">Превышает баланс ({formatAmountShort(activeBalance.current)} {activeBalance.currency})</p>
+                )}
               </div>
               {type !== "transfer" ? (
                 <div>
