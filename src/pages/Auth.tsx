@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
-export default function Auth() {
+interface AuthProps {
+  telegram?: { name: string; status: "idle" | "trying" | "linked" | "not-linked" | "error" };
+}
+
+export default function Auth({ telegram }: AuthProps = {}) {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
