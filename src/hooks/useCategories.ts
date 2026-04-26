@@ -68,6 +68,47 @@ export function useCategories() {
     onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
   });
 
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, newName }: { id: string; newName: string }) => {
+      const trimmed = newName.trim();
+      if (!trimmed) throw new Error("Название не может быть пустым");
+      const cat = categories.find((c) => c.id === id);
+      if (!cat) throw new Error("Категория не найдена");
+      const oldName = cat.name;
+      if (oldName === trimmed) return;
+
+      // Prevent duplicates within same type
+      const dup = categories.find(
+        (c) => c.type === cat.type && c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase()
+      );
+      if (dup) throw new Error("Категория с таким названием уже существует");
+
+      const { error } = await supabase.from("categories").update({ name: trimmed }).eq("id", id);
+      if (error) throw error;
+
+      // Cascade rename to existing transactions (category names are stored as text)
+      if (cat.type === "income" || cat.type === "expense") {
+        await supabase
+          .from("transactions")
+          .update({ pnl_category: trimmed })
+          .eq("user_id", user!.id)
+          .eq("pnl_category", oldName);
+      }
+      await supabase
+        .from("transactions")
+        .update({ cashflow_category: trimmed })
+        .eq("user_id", user!.id)
+        .eq("cashflow_category", oldName);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      toast({ title: "Категория переименована" });
+    },
+    onError: (e: Error) => toast({ title: "Ошибка", description: e.message, variant: "destructive" }),
+  });
+
+
   // Seed defaults if none exist
   const seedDefaults = async () => {
     if (!user || categories.length > 0) return;
