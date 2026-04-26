@@ -1,52 +1,88 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getTelegramWebApp } from "@/hooks/useTelegramWebApp";
+import { getTelegramWebApp, getTelegramWebAppRaw } from "@/hooks/useTelegramWebApp";
 
 type Status = "idle" | "trying" | "linked" | "not-linked" | "error";
 
 /**
  * If running inside Telegram and no Supabase user is signed in,
  * try auto-login using verified initData.
- * Returns the current attempt status so the Auth screen can show context.
+ *
+ * The Telegram SDK script may not have populated `initData` on the very first
+ * render — we poll briefly (up to ~3s) before giving up.
  */
 export function useTelegramAutoLogin(hasUser: boolean) {
   const [status, setStatus] = useState<Status>("idle");
   const [tgName, setTgName] = useState<string>("");
+  const [isTelegram, setIsTelegram] = useState<boolean>(() => !!getTelegramWebAppRaw());
   const triedRef = useRef(false);
 
   useEffect(() => {
     if (hasUser || triedRef.current) return;
-    const wa = getTelegramWebApp();
-    if (!wa) return;
-    triedRef.current = true;
 
-    const initData = wa.initData;
-    const u = wa.initDataUnsafe?.user;
-    if (u) setTgName(u.first_name || u.username || "");
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // ~3s @100ms
 
-    setStatus("trying");
-    (async () => {
+    const tick = async () => {
+      if (cancelled) return;
+      attempts++;
+      const wa = getTelegramWebApp();
+      const waRaw = getTelegramWebAppRaw();
+
+      if (waRaw) setIsTelegram(true);
+
+      if (!wa) {
+        if (attempts >= MAX_ATTEMPTS) {
+          // Not in Telegram, or initData never arrived — fall through to normal Auth screen
+          console.log("[tg-autologin] no initData after polling");
+          return;
+        }
+        setTimeout(tick, 100);
+        return;
+      }
+
+      triedRef.current = true;
+      const u = wa.initDataUnsafe?.user;
+      if (u) setTgName(u.first_name || u.username || "");
+      setStatus("trying");
+
       try {
+        console.log("[tg-autologin] invoking telegram-webapp-auth");
         const { data, error } = await supabase.functions.invoke("telegram-webapp-auth", {
-          body: { initData },
+          body: { initData: wa.initData },
         });
-        if (error) throw error;
+        if (cancelled) return;
+        if (error) {
+          console.error("[tg-autologin] function error", error);
+          setStatus("error");
+          return;
+        }
         if (data?.linked && data.access_token && data.refresh_token) {
+          console.log("[tg-autologin] linked, setting session");
           const { error: setErr } = await supabase.auth.setSession({
             access_token: data.access_token,
             refresh_token: data.refresh_token,
           });
-          if (setErr) throw setErr;
+          if (setErr) {
+            console.error("[tg-autologin] setSession failed", setErr);
+            setStatus("error");
+            return;
+          }
           setStatus("linked");
         } else {
+          console.log("[tg-autologin] not linked", data);
           setStatus("not-linked");
         }
       } catch (e) {
-        console.error("Telegram auto-login failed", e);
-        setStatus("error");
+        console.error("[tg-autologin] unexpected error", e);
+        if (!cancelled) setStatus("error");
       }
-    })();
+    };
+
+    tick();
+    return () => { cancelled = true; };
   }, [hasUser]);
 
-  return { status, tgName, isTelegram: !!getTelegramWebApp() };
+  return { status, tgName, isTelegram };
 }
