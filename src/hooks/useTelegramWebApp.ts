@@ -27,12 +27,18 @@ declare global {
   }
 }
 
+/** Returns the WebApp instance only if we're actually running inside Telegram (initData present). */
 export function getTelegramWebApp(): TelegramWebApp | null {
   if (typeof window === "undefined") return null;
   const wa = window.Telegram?.WebApp;
-  // initData is empty when the SDK script loads outside Telegram
   if (!wa || !wa.initData) return null;
   return wa;
+}
+
+/** Returns the WebApp instance even if initData is empty (still in a Telegram-like host). */
+export function getTelegramWebAppRaw(): TelegramWebApp | null {
+  if (typeof window === "undefined") return null;
+  return window.Telegram?.WebApp ?? null;
 }
 
 export function useTelegramWebApp() {
@@ -43,7 +49,6 @@ export function useTelegramWebApp() {
     try {
       webApp.ready();
       webApp.expand();
-      // Match app's dark theme
       webApp.setHeaderColor("#09090b");
       webApp.setBackgroundColor("#09090b");
     } catch (e) {
