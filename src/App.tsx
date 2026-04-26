@@ -24,6 +24,7 @@ function AppRoutes() {
   useTelegramWebApp();
   const tg = useTelegramAutoLogin(!!user);
 
+  // While Telegram auto-login is in progress, keep showing the loader instead of the password screen.
   if (loading || (tg.isTelegram && !user && (tg.status === "idle" || tg.status === "trying"))) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
