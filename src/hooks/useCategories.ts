@@ -125,5 +125,5 @@ export function useCategories() {
   const getCategoryNames = (type: "income" | "expense" | "transfer" | "dividend") =>
     categories.filter((c) => c.type === type).map((c) => c.name);
 
-  return { categories, isLoading, addMutation, deleteMutation, toggleCogsMutation, seedDefaults, getCategoryNames };
+  return { categories, isLoading, addMutation, deleteMutation, toggleCogsMutation, renameMutation, seedDefaults, getCategoryNames };
 }
