@@ -29,8 +29,10 @@ type Member = {
 };
 
 function CategorySection({ type, label }: { type: "income" | "expense" | "transfer"; label: string }) {
-  const { categories, addMutation, deleteMutation, toggleCogsMutation, seedDefaults, isLoading } = useCategories();
+  const { categories, addMutation, deleteMutation, toggleCogsMutation, renameMutation, seedDefaults, isLoading } = useCategories();
   const [newName, setNewName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => { seedDefaults(); }, []);
 
@@ -41,6 +43,24 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
     if (!trimmed) return;
     addMutation.mutate({ name: trimmed, type });
     setNewName("");
+  };
+
+  const startEdit = (id: string, currentName: string) => {
+    setEditingId(id);
+    setEditValue(currentName);
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    renameMutation.mutate(
+      { id: editingId, newName: editValue },
+      { onSuccess: () => setEditingId(null) }
+    );
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditValue("");
   };
 
   return (
@@ -57,35 +77,67 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
         ) : filtered.length === 0 ? (
           <span className="text-xs text-muted-foreground">Нет категорий</span>
         ) : (
-          filtered.map((c) => (
-            <Badge
-              key={c.id}
-              variant="outline"
-              className={`text-[10px] pr-0.5 gap-1 ${
-                c.is_cogs ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30" :
-                type === "income" ? "bg-income-muted text-income border-income/20" :
-                type === "expense" ? "bg-expense-muted text-expense border-expense/20" :
-                "bg-transfer-muted text-transfer border-transfer/20"
-              }`}
-            >
-              {type === "expense" && (
+          filtered.map((c) => {
+            const colorClass = c.is_cogs ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30" :
+              type === "income" ? "bg-income-muted text-income border-income/20" :
+              type === "expense" ? "bg-expense-muted text-expense border-expense/20" :
+              "bg-transfer-muted text-transfer border-transfer/20";
+
+            if (editingId === c.id) {
+              return (
+                <div key={c.id} className={`flex items-center gap-1 rounded-md border px-1 py-0.5 ${colorClass}`}>
+                  <Input
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveEdit();
+                      if (e.key === "Escape") cancelEdit();
+                    }}
+                    autoFocus
+                    className="h-5 text-[10px] w-32 px-1 bg-background"
+                  />
+                  <button onClick={saveEdit} className="hover:opacity-70" title="Сохранить">
+                    <Check className="h-3 w-3" />
+                  </button>
+                  <button onClick={cancelEdit} className="hover:opacity-70" title="Отмена">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            }
+
+            return (
+              <Badge
+                key={c.id}
+                variant="outline"
+                className={`text-[10px] pr-0.5 gap-1 ${colorClass}`}
+              >
+                {type === "expense" && (
+                  <button
+                    onClick={() => toggleCogsMutation.mutate({ id: c.id, is_cogs: !c.is_cogs })}
+                    className={`hover:opacity-70 transition-opacity ${c.is_cogs ? "opacity-100" : "opacity-40"}`}
+                    title={c.is_cogs ? "Убрать из себестоимости" : "Пометить как себестоимость"}
+                  >
+                    💲
+                  </button>
+                )}
+                {c.name}
                 <button
-                  onClick={() => toggleCogsMutation.mutate({ id: c.id, is_cogs: !c.is_cogs })}
-                  className={`hover:opacity-70 transition-opacity ${c.is_cogs ? "opacity-100" : "opacity-40"}`}
-                  title={c.is_cogs ? "Убрать из себестоимости" : "Пометить как себестоимость"}
+                  onClick={() => startEdit(c.id, c.name)}
+                  className="hover:opacity-70 opacity-60 ml-0.5"
+                  title="Переименовать"
                 >
-                  💲
+                  <Pencil className="h-2.5 w-2.5" />
                 </button>
-              )}
-              {c.name}
-              <ConfirmDelete
-                onConfirm={() => deleteMutation.mutate(c.id)}
-                title="Удалить категорию?"
-                description={`Категория «${c.name}» будет удалена. Это не повлияет на существующие операции.`}
-                variant="badge"
-              />
-            </Badge>
-          ))
+                <ConfirmDelete
+                  onConfirm={() => deleteMutation.mutate(c.id)}
+                  title="Удалить категорию?"
+                  description={`Категория «${c.name}» будет удалена. Это не повлияет на существующие операции.`}
+                  variant="badge"
+                />
+              </Badge>
+            );
+          })
         )}
       </div>
       <div className="flex gap-1.5">
@@ -103,6 +155,7 @@ function CategorySection({ type, label }: { type: "income" | "expense" | "transf
     </div>
   );
 }
+
 
 function AccountRow({ account, onSave, onDelete }: {
   account: { id: string; name: string; currency: string; initial_balance: number };
