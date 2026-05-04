@@ -16,7 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarTrigger className="h-7 w-7" />
             </header>
           )}
-          <div className={`flex-1 overflow-auto ${isMobile ? "pb-14" : ""}`}>
+          <div className={`flex-1 overflow-auto ${isMobile ? "pb-safe-offset" : ""}`}>
             {children}
           </div>
         </main>
