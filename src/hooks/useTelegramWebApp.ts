@@ -49,8 +49,10 @@ export function useTelegramWebApp() {
     try {
       webApp.ready();
       webApp.expand();
-      webApp.setHeaderColor("#09090b");
-      webApp.setBackgroundColor("#09090b");
+      const isDark = document.documentElement.classList.contains("dark");
+      const bg = isDark ? "#09090b" : "#ffffff";
+      webApp.setHeaderColor(bg);
+      webApp.setBackgroundColor(bg);
     } catch (e) {
       console.error("Telegram WebApp init error", e);
     }
