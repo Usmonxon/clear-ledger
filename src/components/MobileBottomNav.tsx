@@ -17,11 +17,11 @@ export function MobileBottomNav() {
           key={tab.to}
           to={tab.to}
           end={tab.to === "/"}
-          className="flex flex-col items-center gap-0.5 py-2 px-3 text-muted-foreground transition-colors min-w-0"
+          className="flex flex-col items-center gap-1 pt-2.5 pb-2 px-3 text-muted-foreground transition-colors min-w-0"
           activeClassName="text-primary"
         >
-          <tab.icon className="h-5 w-5" />
-          <span className="text-[10px] leading-tight">{tab.label}</span>
+          <tab.icon className="h-6 w-6" />
+          <span className="text-xs leading-tight font-medium">{tab.label}</span>
         </NavLink>
       ))}
     </nav>
