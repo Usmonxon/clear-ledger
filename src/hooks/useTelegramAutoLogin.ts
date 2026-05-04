@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getTelegramWebApp, getTelegramWebAppRaw } from "@/hooks/useTelegramWebApp";
+import { AUTH_SESSION_SET_EVENT } from "@/hooks/useAuth";
 
 type Status = "idle" | "trying" | "linked" | "not-linked" | "error";
 
@@ -16,9 +17,10 @@ export function useTelegramAutoLogin(hasUser: boolean) {
   const [tgName, setTgName] = useState<string>("");
   const [isTelegram, setIsTelegram] = useState<boolean>(() => !!getTelegramWebAppRaw());
   const triedRef = useRef(false);
+  const inFlightRef = useRef(false);
 
   useEffect(() => {
-    if (hasUser || triedRef.current) return;
+    if (hasUser || triedRef.current || inFlightRef.current) return;
 
     let cancelled = false;
     let attempts = 0;
@@ -43,6 +45,7 @@ export function useTelegramAutoLogin(hasUser: boolean) {
       }
 
       triedRef.current = true;
+      inFlightRef.current = true;
       const u = wa.initDataUnsafe?.user;
       if (u) setTgName(u.first_name || u.username || "");
       setStatus("trying");
@@ -64,11 +67,13 @@ export function useTelegramAutoLogin(hasUser: boolean) {
             access_token: data.access_token,
             refresh_token: data.refresh_token,
           });
+          const { data: { session } } = await supabase.auth.getSession();
           if (setErr) {
             console.error("[tg-autologin] setSession failed", setErr);
             setStatus("error");
             return;
           }
+          window.dispatchEvent(new CustomEvent(AUTH_SESSION_SET_EVENT, { detail: { session } }));
           setStatus("linked");
         } else {
           console.log("[tg-autologin] not linked", data);
@@ -77,6 +82,8 @@ export function useTelegramAutoLogin(hasUser: boolean) {
       } catch (e) {
         console.error("[tg-autologin] unexpected error", e);
         if (!cancelled) setStatus("error");
+      } finally {
+        inFlightRef.current = false;
       }
     };
 
