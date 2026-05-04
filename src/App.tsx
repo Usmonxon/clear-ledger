@@ -23,9 +23,10 @@ function AppRoutes() {
   const { user, loading } = useAuth();
   useTelegramWebApp();
   const tg = useTelegramAutoLogin(!!user);
+  const isTelegramAuthSettling = tg.isTelegram && !user && ["idle", "trying", "linked"].includes(tg.status);
 
   // While Telegram auto-login is in progress, keep showing the loader instead of the password screen.
-  if (loading || (tg.isTelegram && !user && (tg.status === "idle" || tg.status === "trying"))) {
+  if (loading || isTelegramAuthSettling) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-xs text-muted-foreground animate-pulse">Загрузка...</div>
