@@ -95,6 +95,7 @@
     --dividend: 280 60% 60%;
     --dividend-foreground: 0 0% 100%;
     --font-sans: 'Fira Sans', ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  }
 }
 
 @layer base {
@@ -102,6 +103,8 @@
     @apply border-border;
   }
 
+  html, body {
+    @apply bg-background text-foreground;
     font-family: 'Fira Sans', system-ui, sans-serif;
     font-size: 13px;
     line-height: 1.4;
